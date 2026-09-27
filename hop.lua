@@ -10,6 +10,7 @@
 --   Alt+Tab, release        flip to the last window (no list is drawn)
 --   hold Alt, tap Tab       walk the list, most recently used first
 --   hold Alt, type letters  fuzzy filter by app name or title
+--   Alt+Ctrl+J / Alt+Ctrl+K move down / up (letters alone are the filter)
 --   Alt+Ctrl+H              delete a letter (as does Alt+Backspace)
 --   Alt+Ctrl+U              clear the filter
 --   Alt+Delete              close the selected window, list stays open
@@ -346,6 +347,8 @@ hl.define_submap(SUBMAP, function()
   hl.bind("ALT + ESCAPE", teardown)
   hl.bind("ESCAPE", teardown)
   hl.bind("ALT + BACKSPACE", backspace, { repeating = true })
+  hl.bind("ALT + CTRL + j", function() step(1) end, { repeating = true })
+  hl.bind("ALT + CTRL + k", function() step(-1) end, { repeating = true })
   hl.bind("ALT + CTRL + h", backspace, { repeating = true })
   hl.bind("ALT + CTRL + u", clear_filter)
   hl.bind("ALT + DELETE", close_selected)

@@ -43,7 +43,7 @@ Most switchers make you look before you move. Hop does not:
 | `Alt` + letters | Filter |
 | `Alt+Backspace` or `Alt+Ctrl+H` | Delete a letter |
 | `Alt+Ctrl+U` | Clear the filter |
-| `Alt+↑` `Alt+↓` | Move the cursor |
+| `Alt+Ctrl+J` `Alt+Ctrl+K` · `Alt+↓` `Alt+↑` | Move the cursor |
 | `Alt+Delete` | Close the selected window |
 | `` Alt+` `` | Windows of the current app only |
 | Release `Alt` | Switch to the selected window |

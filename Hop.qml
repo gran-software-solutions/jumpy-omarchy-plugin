@@ -52,11 +52,14 @@ Item {
 
   readonly property string fontFamily: Style.font.menuFamily
   readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.82))
-  readonly property int rowHeight: Style.space(32)
-  readonly property int groupGap: Style.space(4)
+  // App name, title and workspace share one size; weight and tone do the
+  // ranking, which reads calmer than three sizes on one line.
+  readonly property int rowFont: Style.font.body
+  readonly property int rowHeight: Style.space(34)
+  readonly property int groupGap: Style.space(5)
   readonly property int appColumn: Style.space(118)
   readonly property int wsColumn: Style.space(28)
-  readonly property int rowPadding: Style.space(10)
+  readonly property int rowPadding: Style.space(12)
   readonly property int maxRows: 14
   readonly property int cardWidth: Math.min(Style.space(460), panel.width - Style.gapsOut * 2)
 
@@ -184,7 +187,7 @@ Item {
       radius: Style.cornerRadius
       color: root.background
       borderSpec: root.borderSpec
-      padding: Style.space(6)
+      padding: Style.space(8)
 
       Column {
         id: column
@@ -211,7 +214,7 @@ Item {
             text: root.filterText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: Style.font.subtitle
+            font.pixelSize: root.rowFont
             elide: Text.ElideLeft
           }
 
@@ -251,7 +254,7 @@ Item {
             color: root.faint
             font.family: root.fontFamily
             font.pixelSize: root.labelFont
-            font.letterSpacing: 0.8
+            font.letterSpacing: 1.2
           }
         }
 
@@ -303,7 +306,7 @@ Item {
               anchors.right: parent.right
               anchors.bottom: parent.bottom
               height: root.rowHeight
-              radius: Style.space(7)
+              radius: Style.space(8)
               color: row.selected ? root.selectedBackground : "transparent"
 
               RowLayout {
@@ -336,7 +339,7 @@ Item {
                     text: root.friendlyAppName(row.modelData.appClass)
                     color: row.selected ? root.selectedText : root.muted
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.bodySmall
+                    font.pixelSize: root.rowFont
                     font.weight: Font.Medium
                   }
 
@@ -344,9 +347,10 @@ Item {
                     visible: (row.modelData.count || 1) > 1
                     textFormat: Text.PlainText
                     text: String(row.modelData.count)
-                    color: root.faint
+                    color: row.selected ? root.selectedText : root.faint
+                    opacity: row.selected ? 0.6 : 1
                     font.family: root.fontFamily
-                    font.pixelSize: root.labelFont + 1
+                    font.pixelSize: root.rowFont
                   }
                 }
 
@@ -358,8 +362,8 @@ Item {
                   color: row.selected ? root.selectedText
                        : (row.modelData.current ? root.muted : root.foreground)
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.subtitle
-                  font.weight: row.selected ? Font.Medium : Font.Normal
+                  font.pixelSize: root.rowFont
+                  font.weight: Font.Normal
                 }
 
                 Text {
@@ -367,9 +371,10 @@ Item {
                   horizontalAlignment: Text.AlignRight
                   textFormat: Text.PlainText
                   text: row.modelData.workspace
-                  color: row.selected ? Color.accent : root.muted
+                  color: row.selected ? Color.accent : root.faint
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.subtitle
+                  font.pixelSize: root.rowFont
+                  font.weight: row.selected ? Font.Medium : Font.Normal
                 }
               }
             }
