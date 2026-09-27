@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "de.gransoftware.hop",
+  "name": "Hop",
+  "version": "1.0.0",
+  "author": "Gran Software Solutions",
+  "license": "MIT",
+  "description": "Alt+Tab that flips instantly, filters as you type with Alt held, and jumps with Alt+1-9",
+  "kinds": ["panel"],
+  "keepLoaded": true,
+  "entryPoints": {
+    "panel": "Hop.qml"
+  }
+}
