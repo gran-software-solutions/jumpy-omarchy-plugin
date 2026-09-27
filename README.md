@@ -29,7 +29,7 @@ Most switchers make you look before you move. Hop does not:
 - **Alt+Delete closes** the selected window and keeps the list open, so you
   can tidy up several at once.
 - **Alt+`** shows only the windows of the app you are in.
-- **Every window, every workspace**, most recently used first. The list is
+- **Every window, every workspace**, apps most recently used first. The list is
   frozen while you switch, so rows never move under you.
 - **Nothing leaks.** While the list is up, keys Hop does not use are swallowed
   instead of landing in the window behind it.
