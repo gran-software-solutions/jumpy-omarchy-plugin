@@ -9,9 +9,12 @@ Tap to flip back. Hold to see every window. Type to find one.
 
 <br>
 
-<img src="preview.png" alt="Jumpy's window list: eight windows most recent first, each with its app icon and name, title and workspace number, the second row selected, and key hints in the footer" width="100%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="preview.png">
+  <img src="preview-light.png" alt="Jumpy's window list: eight windows most recent first, each with its app icon and name, title and workspace number, the second row selected, and key hints in the footer" width="100%">
+</picture>
 
-<sub>Follows the active Omarchy theme and font.</sub>
+<sub>Follows the active Omarchy theme and font. Shown in Tokyo Night or Snow, matching your GitHub theme.</sub>
 
 </div>
 
@@ -44,7 +47,10 @@ After removing, delete the `dofile` line and run `hyprctl reload`.
 
 ## Keys
 
-<img src="preview-search.png" alt="Jumpy filtering by the typed word jumpy: three of eight windows match, the Brave tab of the jumpy repository is selected, with a kitty and a Zed window below it" width="100%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="preview-search.png">
+  <img src="preview-search-light.png" alt="Jumpy filtering by the typed word jumpy: three of eight windows match, the Brave tab of the jumpy repository is selected, with a kitty and a Zed window below it" width="100%">
+</picture>
 
 Hold `Alt` throughout. Releasing it switches.
 
