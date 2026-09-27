@@ -13,7 +13,7 @@
 --   Alt+Ctrl+J / Alt+Ctrl+K move down / up (letters alone are the filter)
 --   Alt+Ctrl+H              delete a letter (as does Alt+Backspace)
 --   Alt+Ctrl+U              clear the filter
---   Alt+Delete              close the selected window, list stays open
+--   Alt+Delete, Alt+Ctrl+W  close the selected window, list stays open
 --   Alt+`                   same, but only windows of the current app
 --   Alt+Escape              cancel
 --
@@ -332,6 +332,7 @@ hl.define_submap(SUBMAP, function()
   hl.bind("ALT + CTRL + h", backspace, { repeating = true })
   hl.bind("ALT + CTRL + u", clear_filter)
   hl.bind("ALT + DELETE", close_selected)
+  hl.bind("ALT + CTRL + w", close_selected)
 
   for code = string.byte("a"), string.byte("z") do
     local char = string.char(code)

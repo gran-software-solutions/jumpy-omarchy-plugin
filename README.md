@@ -24,7 +24,7 @@ Most switchers make you look before you move. Jumpy does not:
 - **Most recent first.** One line per window, top to bottom from the one you
   used last to the oldest, each with its app icon and name.
 - **The workspace** of every window is a number in the right column.
-- **Alt+Delete closes** the selected window and keeps the list open, so you
+- **Alt+Ctrl+W (or Alt+Delete) closes** the selected window and keeps the list open, so you
   can tidy up several at once.
 - **Alt+`** shows only the windows of the app you are in.
 - **Every window, every workspace**, most recently used first. The list is
@@ -42,7 +42,7 @@ Most switchers make you look before you move. Jumpy does not:
 | `Alt+Backspace` or `Alt+Ctrl+H` | Delete a letter |
 | `Alt+Ctrl+U` | Clear the filter |
 | `Alt+Ctrl+J` `Alt+Ctrl+K` · `Alt+↓` `Alt+↑` | Move the cursor |
-| `Alt+Delete` | Close the selected window |
+| `Alt+Ctrl+W` or `Alt+Delete` | Close the selected window |
 | `` Alt+` `` | Windows of the current app only |
 | Release `Alt` | Switch to the selected window |
 | `Esc` | Cancel |
