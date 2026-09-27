@@ -66,14 +66,14 @@ Item {
   readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.95))
 
   // ---- measure ----
-  readonly property int rowHeight: Style.space(38)
-  readonly property int groupGap: Style.space(6)
+  readonly property int rowHeight: Style.space(32)
+  readonly property int groupGap: Style.space(3)
   readonly property int appColumn: Style.space(170)
   readonly property int wsColumn: Style.space(28)
-  readonly property int rowPadding: Style.space(14)
+  readonly property int rowPadding: Style.space(10)
   readonly property int iconSize: Style.space(20)
   readonly property int maxRows: 14
-  readonly property int cardRadius: Style.space(16)
+  readonly property int cardRadius: Style.space(12)
   readonly property int cardWidth: Math.min(Style.space(720), panel.width - Style.gapsOut * 2)
 
   // Rows plus the gap each app block after the first adds above itself.
@@ -203,7 +203,7 @@ Item {
     Item {
       id: stage
       width: root.cardWidth
-      height: column.implicitHeight + Style.space(24)
+      height: column.implicitHeight + Style.space(12)
       anchors.centerIn: parent
 
       // Opens with a short settle rather than a pop.
@@ -250,13 +250,13 @@ Item {
         Column {
           id: column
           anchors.fill: parent
-          anchors.margins: Style.space(12)
+          anchors.margins: Style.space(6)
           spacing: 0
 
           // ---- header: what you typed (or how many windows) and the column label ----
           Item {
             width: parent.width
-            height: Style.space(48)
+            height: Style.space(36)
 
             Row {
               anchors.left: parent.left
@@ -322,7 +322,7 @@ Item {
           }
 
           // Air between the header rule and the first row.
-          Item { width: parent.width; height: Style.space(8) }
+          Item { width: parent.width; height: Style.space(4) }
 
           ListView {
             id: list
@@ -369,14 +369,14 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: root.rowHeight
-                radius: Style.space(10)
+                radius: Style.space(8)
                 color: row.selected ? root.cursorFill : "transparent"
 
                 RowLayout {
                   anchors.fill: parent
                   anchors.leftMargin: root.rowPadding
                   anchors.rightMargin: root.rowPadding
-                  spacing: Style.space(12)
+                  spacing: Style.space(10)
 
                   // App column: icon, name and window count, first row only.
                   RowLayout {
