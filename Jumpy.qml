@@ -187,6 +187,51 @@ Item {
     }
   }
 
+  // A small key, drawn like the ones on the keyboard: faint fill, hairline.
+  component KeyCap: Rectangle {
+    property string label
+    width: capText.implicitWidth + Style.space(10)
+    height: Math.round(root.rowFont * 1.55)
+    radius: Style.space(4)
+    color: Util.alpha(root.foreground, root.lightTheme ? 0.04 : 0.08)
+    border.width: 1
+    border.color: Util.alpha(root.foreground, 0.12)
+
+    Text {
+      id: capText
+      anchors.centerIn: parent
+      textFormat: Text.PlainText
+      text: parent.label
+      color: root.muted
+      font.family: root.sans
+      font.pixelSize: Math.round(root.rowFont * 0.85)
+    }
+  }
+
+  // A key, or keys, and what it does.
+  component Hint: Row {
+    property var keys: []
+    property string action
+    spacing: Style.space(6)
+
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent.verticalCenter
+      Repeater {
+        model: parent.parent.keys
+        delegate: KeyCap { required property var modelData; label: modelData }
+      }
+    }
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      textFormat: Text.PlainText
+      text: parent.action
+      color: root.faint
+      font.family: root.sans
+      font.pixelSize: Math.round(root.rowFont * 0.9)
+    }
+  }
+
   component RowText: Text {
     // Every text in a row fills the row's height and centres in it, so the
     // app name, title and workspace share one baseline.
@@ -456,6 +501,55 @@ Item {
                 }
                 onClicked: root.pickAt(row.index)
               }
+            }
+          }
+
+          // ---- footer: the keys, while Alt is held ----
+          Item {
+            width: parent.width
+            height: Style.space(38)
+
+            Rectangle {
+              anchors.top: parent.top
+              anchors.topMargin: Style.space(4)
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: root.rowPadding
+              anchors.rightMargin: root.rowPadding
+              height: 1
+              color: root.hairline
+            }
+
+            Row {
+              anchors.left: parent.left
+              anchors.leftMargin: root.rowPadding
+              anchors.verticalCenter: parent.verticalCenter
+              anchors.verticalCenterOffset: Style.space(2)
+              spacing: Style.space(6)
+
+              KeyCap { label: "Alt"; anchors.verticalCenter: parent.verticalCenter }
+              Text {
+                anchors.verticalCenter: parent.verticalCenter
+                textFormat: Text.PlainText
+                text: "held, then"
+                color: root.faint
+                font.family: root.sans
+                font.pixelSize: Math.round(root.rowFont * 0.9)
+              }
+            }
+
+            Row {
+              anchors.right: parent.right
+              anchors.rightMargin: root.rowPadding
+              anchors.verticalCenter: parent.verticalCenter
+              anchors.verticalCenterOffset: Style.space(2)
+              spacing: Style.space(16)
+
+              Hint { keys: ["Tab"]; action: "next" }
+              Hint { keys: ["Ctrl", "J", "K"]; action: "move" }
+              Hint { keys: ["Ctrl", "W"]; action: "close" }
+              Hint { keys: ["Ctrl", "U"]; action: "clear" }
+              Hint { keys: ["Esc"]; action: "cancel" }
             }
           }
         }
