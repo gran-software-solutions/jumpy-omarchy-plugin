@@ -9,12 +9,9 @@ Tap to flip back. Hold to see every window. Type to find one.
 
 <br>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="preview.png">
-  <img src="preview-light.png" alt="Jumpy's window list: eight windows most recent first, each with its app icon and name, title and workspace number, the second row selected, and key hints in the footer" width="100%">
-</picture>
+<img src="preview-carousel.webp" alt="Jumpy cycling through four screenshots: the window list and a search for jumpy, first in the dark Tokyo Night theme, then in the light Snow theme" width="100%">
 
-<sub>Follows the active Omarchy theme and font. Shown in Tokyo Night or Snow, matching your GitHub theme.</sub>
+<sub>Follows the active Omarchy theme and font — Tokyo Night and Snow here.</sub>
 
 </div>
 
@@ -46,11 +43,6 @@ omarchy plugin remove de.gransoftware.jumpy
 After removing, delete the `dofile` line and run `hyprctl reload`.
 
 ## Keys
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="preview-search.png">
-  <img src="preview-search-light.png" alt="Jumpy filtering by the typed word jumpy: three of eight windows match, the Brave tab of the jumpy repository is selected, with a kitty and a Zed window below it" width="100%">
-</picture>
 
 Hold `Alt` throughout. Releasing it switches.
 
