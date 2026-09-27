@@ -50,11 +50,8 @@ Item {
   readonly property color frame: Util.alpha(foreground, lightTheme ? 0.10 : 0.14)
   readonly property color faint: Util.alpha(foreground, 0.42)
   readonly property color muted: Util.alpha(foreground, 0.62)
-  // The cursor is a raised pill: a touch lighter than the card, a hairline
-  // edge and a small shadow, like a key sitting on the surface. The title on
-  // it keeps its own colour.
-  readonly property color cursorFill: lightTheme ? background : Util.alpha(foreground, 0.07)
-  readonly property color cursorEdge: Util.alpha(foreground, lightTheme ? 0.10 : 0.12)
+  // The cursor is a flat, soft tint of the text colour: no edge, no shadow.
+  readonly property color cursorFill: Util.alpha(foreground, lightTheme ? 0.06 : 0.09)
   readonly property color scrim: Util.alpha("#000000", lightTheme ? 0.10 : 0.28)
 
   // ---- type ----
@@ -257,9 +254,7 @@ Item {
         id: card
         anchors.fill: parent
         radius: root.cardRadius
-        // A shade below the theme's surface, so the cursor pill (at the
-        // surface colour) sits visibly on top of it.
-        color: root.lightTheme ? Qt.darker(root.background, 1.03) : root.background
+        color: root.background
 
         // Clicks on the card itself (header, padding) must not reach the
         // cancel area behind it.
@@ -392,22 +387,11 @@ Item {
               width: list.width
               height: root.rowHeight
 
-              RectangularShadow {
-                visible: row.selected
-                anchors.fill: pill
-                radius: pill.radius
-                offset: Qt.vector2d(0, 1)
-                blur: Style.space(6)
-                color: Util.alpha("#000000", root.lightTheme ? 0.10 : 0.35)
-              }
-
               Rectangle {
                 id: pill
                 anchors.fill: parent
                 radius: Style.space(8)
                 color: row.selected ? root.cursorFill : "transparent"
-                border.width: row.selected ? 1 : 0
-                border.color: root.cursorEdge
 
                 RowLayout {
                   anchors.fill: parent
