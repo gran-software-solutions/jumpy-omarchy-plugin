@@ -187,48 +187,71 @@ Item {
     }
   }
 
-  // A small key, drawn like the ones on the keyboard: faint fill, hairline.
-  component KeyCap: Rectangle {
-    property string label
-    width: capText.implicitWidth + Style.space(10)
-    height: Math.round(root.rowFont * 1.55)
-    radius: Style.space(4)
-    color: Util.alpha(root.foreground, root.lightTheme ? 0.04 : 0.08)
-    border.width: 1
-    border.color: Util.alpha(root.foreground, 0.12)
+  // A small keycap: faint face, hairline edge and a slightly deeper bottom
+  // edge, so it reads as a key. `glyph` draws a Nerd Font key icon instead of
+  // text (the theme font carries them).
+  readonly property int footFont: Math.max(9, Math.round(rowFont * 0.8))
 
+  component KeyCap: Item {
+    id: cap
+    property string label
+    property bool glyph: false
+    width: Math.max(height, capText.implicitWidth + Style.space(9))
+    height: Math.round(root.footFont * 1.75)
+
+    Rectangle {   // the key's side, peeking out below the face
+      anchors.fill: parent
+      radius: Style.space(4)
+      color: Util.alpha(root.foreground, root.lightTheme ? 0.10 : 0.18)
+    }
+    Rectangle {   // the face
+      anchors.fill: parent
+      anchors.bottomMargin: 1.5
+      radius: Style.space(4)
+      color: root.lightTheme ? Qt.lighter(root.background, 1.0) : Qt.lighter(root.background, 1.35)
+      border.width: 1
+      border.color: Util.alpha(root.foreground, root.lightTheme ? 0.11 : 0.16)
+    }
     Text {
       id: capText
       anchors.centerIn: parent
+      anchors.verticalCenterOffset: -0.75
       textFormat: Text.PlainText
-      text: parent.label
+      text: cap.label
       color: root.muted
-      font.family: root.sans
-      font.pixelSize: Math.round(root.rowFont * 0.85)
+      font.family: cap.glyph ? Style.font.family : root.sans
+      font.pixelSize: cap.glyph ? Math.round(root.footFont * 1.15) : root.footFont
+      font.weight: Font.Medium
     }
   }
 
-  // A key, or keys, and what it does.
+  // Keys and what they do. A key written as "@name" is drawn as an icon.
   component Hint: Row {
+    id: hint
     property var keys: []
     property string action
-    spacing: Style.space(6)
+    spacing: Style.space(5)
 
     Row {
-      spacing: Style.space(3)
+      spacing: Style.space(2)
       anchors.verticalCenter: parent.verticalCenter
       Repeater {
-        model: parent.parent.keys
-        delegate: KeyCap { required property var modelData; label: modelData }
+        model: hint.keys
+        delegate: KeyCap {
+          required property var modelData
+          readonly property var icons: ({ "@tab": "\u{F0312}", "@ctrl": "\u{F0634}", "@alt": "\u{F0635}", "@esc": "\u{F12B7}" })
+          glyph: String(modelData).charAt(0) === "@"
+          label: glyph ? icons[modelData] : modelData
+        }
       }
     }
     Text {
       anchors.verticalCenter: parent.verticalCenter
       textFormat: Text.PlainText
-      text: parent.action
+      text: hint.action
       color: root.faint
       font.family: root.sans
-      font.pixelSize: Math.round(root.rowFont * 0.9)
+      font.pixelSize: root.footFont
     }
   }
 
@@ -507,7 +530,7 @@ Item {
           // ---- footer: the keys, while Alt is held ----
           Item {
             width: parent.width
-            height: Style.space(38)
+            height: Style.space(32)
 
             Rectangle {
               anchors.top: parent.top
@@ -527,15 +550,7 @@ Item {
               anchors.verticalCenterOffset: Style.space(2)
               spacing: Style.space(6)
 
-              KeyCap { label: "Alt"; anchors.verticalCenter: parent.verticalCenter }
-              Text {
-                anchors.verticalCenter: parent.verticalCenter
-                textFormat: Text.PlainText
-                text: "held, then"
-                color: root.faint
-                font.family: root.sans
-                font.pixelSize: Math.round(root.rowFont * 0.9)
-              }
+              Hint { keys: ["Alt"]; action: "hold, then" }
             }
 
             Row {
@@ -543,12 +558,12 @@ Item {
               anchors.rightMargin: root.rowPadding
               anchors.verticalCenter: parent.verticalCenter
               anchors.verticalCenterOffset: Style.space(2)
-              spacing: Style.space(16)
+              spacing: Style.space(14)
 
-              Hint { keys: ["Tab"]; action: "next" }
-              Hint { keys: ["Ctrl", "J", "K"]; action: "move" }
-              Hint { keys: ["Ctrl", "W"]; action: "close" }
-              Hint { keys: ["Ctrl", "U"]; action: "clear" }
+              Hint { keys: ["@tab"]; action: "next" }
+              Hint { keys: ["@ctrl", "J", "K"]; action: "move" }
+              Hint { keys: ["@ctrl", "W"]; action: "close" }
+              Hint { keys: ["@ctrl", "U"]; action: "clear" }
               Hint { keys: ["Esc"]; action: "cancel" }
             }
           }
