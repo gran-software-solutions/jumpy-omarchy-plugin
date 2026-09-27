@@ -8,18 +8,22 @@
 //
 // The list arrives grouped by app. Each window says whether it opens its app's
 // block ("first") and how many windows the block has ("count"); the app's
-// icon, name and count are drawn once, on the first row, and a hairline
+// icon, name and count, "Brave (2)", are drawn once, on the first row, and a hairline
 // separates one app from the next.
 //
 // The panel never takes keyboard focus: while a switch is up, Hyprland's "hop"
 // submap swallows stray keys, so a grab here would only add a way to get stuck.
 // A quick Alt+Tab is committed before showDelay runs out, so the list is never
 // drawn for it and the flip feels instant.
+//
+// Colours come from the active Omarchy theme. Type is Gran's Barlow, which
+// falls back to the theme's menu font where Barlow is not installed.
 
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui
@@ -40,28 +44,36 @@ Item {
 
   readonly property int showDelay: 90
 
-  property color background: Color.menu.background
-  property color foreground: Color.menu.text
-  property color selectedBackground: Color.menu.selectedBackground
-  property color selectedText: Color.menu.selectedText
-  // Same hairline card frame as Yank and Sesame.
-  readonly property var borderSpec: Border.flat(Util.alpha(Color.menu.border, 0.4), 1)
-  readonly property color hairline: Util.alpha(foreground, 0.09)
-  readonly property color faint: Util.alpha(foreground, 0.45)
-  readonly property color muted: Util.alpha(foreground, 0.68)
+  // ---- colour, from the theme ----
+  readonly property color background: Color.menu.background
+  readonly property color foreground: Color.menu.text
+  readonly property color accent: Color.accent
+  readonly property bool lightTheme: background.hslLightness > 0.5
+  readonly property color hairline: Util.alpha(foreground, lightTheme ? 0.07 : 0.10)
+  readonly property color frame: Util.alpha(foreground, lightTheme ? 0.10 : 0.14)
+  readonly property color faint: Util.alpha(foreground, 0.42)
+  readonly property color muted: Util.alpha(foreground, 0.62)
+  // The cursor is a quiet wash of the accent rather than the theme's solid
+  // selection block, so the title on it keeps its own colour.
+  readonly property color cursorFill: Util.alpha(accent, lightTheme ? 0.10 : 0.16)
+  readonly property color scrim: Util.alpha("#000000", lightTheme ? 0.10 : 0.28)
 
-  readonly property string fontFamily: Style.font.menuFamily
-  readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.82))
-  // App name, title and workspace share one size; weight and tone do the
-  // ranking, which reads calmer than three sizes on one line.
-  readonly property int rowFont: Style.font.body
-  readonly property int rowHeight: Style.space(34)
-  readonly property int groupGap: Style.space(5)
-  readonly property int appColumn: Style.space(118)
+  // ---- type ----
+  readonly property string sans: "Barlow"
+  readonly property string label: "Barlow Semi Condensed"
+  readonly property int rowFont: Math.round(Style.font.body * 1.25)       // 15 at the default size
+  readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.95))
+
+  // ---- measure ----
+  readonly property int rowHeight: Style.space(38)
+  readonly property int groupGap: Style.space(6)
+  readonly property int appColumn: Style.space(128)
   readonly property int wsColumn: Style.space(28)
-  readonly property int rowPadding: Style.space(12)
+  readonly property int rowPadding: Style.space(14)
+  readonly property int iconSize: Style.space(20)
   readonly property int maxRows: 14
-  readonly property int cardWidth: Math.min(Style.space(460), panel.width - Style.gapsOut * 2)
+  readonly property int cardRadius: Style.space(16)
+  readonly property int cardWidth: Math.min(Style.space(500), panel.width - Style.gapsOut * 2)
 
   // Rows plus the gap each app block after the first adds above itself.
   readonly property int listHeight: {
@@ -162,6 +174,15 @@ Item {
     }
   }
 
+  component RowText: Text {
+    textFormat: Text.PlainText
+    elide: Text.ElideRight
+    font.family: root.sans
+    font.pixelSize: root.rowFont
+    font.features: { "tnum": 1 }
+    verticalAlignment: Text.AlignVCenter
+  }
+
   PanelWindow {
     id: panel
 
@@ -175,206 +196,241 @@ Item {
 
     Rectangle {
       anchors.fill: parent
-      color: Color.menu.scrim
+      color: root.scrim
     }
 
-    BorderSurface {
-      id: card
-
+    Item {
+      id: stage
       width: root.cardWidth
-      height: column.implicitHeight + contentTopInset + contentBottomInset
+      height: column.implicitHeight + Style.space(20)
       anchors.centerIn: parent
-      radius: Style.cornerRadius
-      color: root.background
-      borderSpec: root.borderSpec
-      padding: Style.space(8)
 
-      Column {
-        id: column
+      // Opens with a short settle rather than a pop.
+      opacity: root.opened ? 1 : 0
+      scale: root.opened ? 1 : 0.97
+      Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+      Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+      // Two shadows: a wide, soft one for lift and a tight one for the edge.
+      RectangularShadow {
+        anchors.fill: card
+        radius: root.cardRadius
+        offset: Qt.vector2d(0, Style.space(18))
+        blur: Style.space(56)
+        spread: -Style.space(8)
+        color: Util.alpha("#000000", root.lightTheme ? 0.22 : 0.50)
+      }
+      RectangularShadow {
+        anchors.fill: card
+        radius: root.cardRadius
+        offset: Qt.vector2d(0, 1)
+        blur: Style.space(4)
+        color: Util.alpha("#000000", root.lightTheme ? 0.08 : 0.30)
+      }
+
+      Rectangle {
+        id: card
         anchors.fill: parent
-        anchors.topMargin: card.contentTopInset
-        anchors.rightMargin: card.contentRightInset
-        anchors.bottomMargin: card.contentBottomInset
-        anchors.leftMargin: card.contentLeftInset
-        spacing: 0
+        radius: root.cardRadius
+        color: root.background
+        border.width: 1
+        border.color: root.frame
 
-        // ---- filter line: only while you are typing ----
-        Item {
-          width: parent.width
-          height: visible ? Style.space(34) : 0
-          visible: root.filterText.length > 0
-
-          Text {
-            anchors.left: parent.left
-            anchors.leftMargin: root.rowPadding
-            anchors.right: countLabel.left
-            anchors.rightMargin: Style.space(10)
-            anchors.verticalCenter: parent.verticalCenter
-            textFormat: Text.PlainText
-            text: root.filterText
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: root.rowFont
-            elide: Text.ElideLeft
-          }
-
-          Text {
-            id: countLabel
-            anchors.right: parent.right
-            anchors.rightMargin: root.rowPadding
-            anchors.verticalCenter: parent.verticalCenter
-            textFormat: Text.PlainText
-            text: root.windows.length + " of " + root.total
-            color: root.faint
-            font.family: root.fontFamily
-            font.pixelSize: root.labelFont
-          }
-
-          Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: root.hairline
-          }
+        // A one-pixel light edge along the top, like a lit bevel.
+        Rectangle {
+          anchors.top: parent.top
+          anchors.topMargin: 1
+          anchors.horizontalCenter: parent.horizontalCenter
+          width: parent.width - root.cardRadius * 2
+          height: 1
+          color: Util.alpha("#ffffff", root.lightTheme ? 0.7 : 0.06)
         }
 
-        // ---- column label, once ----
-        Item {
-          width: parent.width
-          height: Style.space(20)
+        Column {
+          id: column
+          anchors.fill: parent
+          anchors.margins: Style.space(10)
+          spacing: 0
 
-          Text {
-            anchors.right: parent.right
-            anchors.rightMargin: root.rowPadding
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Style.space(2)
-            textFormat: Text.PlainText
-            text: "WORKSPACE"
-            color: root.faint
-            font.family: root.fontFamily
-            font.pixelSize: root.labelFont
-            font.letterSpacing: 1.2
-          }
-        }
+          // ---- filter line: only while you are typing ----
+          Item {
+            width: parent.width
+            height: visible ? Style.space(42) : 0
+            visible: root.filterText.length > 0
 
-        ListView {
-          id: list
-          width: parent.width
-          height: root.listHeight
-          clip: true
-          interactive: false
-          model: root.windows
-          currentIndex: root.selectedIndex
-          highlightMoveDuration: 0
-          preferredHighlightBegin: 0
-          preferredHighlightEnd: height
-          highlightRangeMode: ListView.ApplyRange
+            Row {
+              anchors.left: parent.left
+              anchors.leftMargin: root.rowPadding
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(2)
 
-          Text {
-            anchors.centerIn: parent
-            visible: root.windows.length === 0
-            textFormat: Text.PlainText
-            text: "No window matches “" + root.filterText + "”"
-            color: root.faint
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.body
-          }
+              RowText {
+                text: root.filterText
+                color: root.foreground
+                font.pixelSize: Math.round(root.rowFont * 1.1)
+                font.weight: Font.Medium
+                elide: Text.ElideNone
+              }
+              Rectangle {
+                width: 2
+                height: Math.round(root.rowFont * 1.2)
+                radius: 1
+                color: root.accent
+                anchors.verticalCenter: parent.verticalCenter
+              }
+            }
 
-          delegate: Item {
-            id: row
-            required property int index
-            required property var modelData
-            readonly property bool selected: index === root.selectedIndex
-            readonly property bool block: root.startsBlock(index)
-
-            width: list.width
-            height: root.rowHeight + (block ? root.groupGap * 2 + 1 : 0)
-
-            // Hairline that closes the app above.
-            Rectangle {
-              visible: row.block
-              y: root.groupGap
-              x: root.rowPadding
-              width: parent.width - root.rowPadding * 2
-              height: 1
-              color: root.hairline
+            RowText {
+              anchors.right: parent.right
+              anchors.rightMargin: root.rowPadding
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.windows.length + " of " + root.total
+              color: root.faint
+              font.pixelSize: Math.round(root.rowFont * 0.87)
             }
 
             Rectangle {
+              anchors.bottom: parent.bottom
               anchors.left: parent.left
               anchors.right: parent.right
+              anchors.leftMargin: root.rowPadding
+              anchors.rightMargin: root.rowPadding
+              height: 1
+              color: root.hairline
+            }
+          }
+
+          // ---- column label, once ----
+          Item {
+            width: parent.width
+            height: Style.space(24)
+
+            Text {
+              anchors.right: parent.right
+              anchors.rightMargin: root.rowPadding
               anchors.bottom: parent.bottom
-              height: root.rowHeight
-              radius: Style.space(8)
-              color: row.selected ? root.selectedBackground : "transparent"
+              anchors.bottomMargin: Style.space(3)
+              textFormat: Text.PlainText
+              text: "WORKSPACE"
+              color: root.faint
+              font.family: root.label
+              font.weight: Font.DemiBold
+              font.pixelSize: root.labelFont
+              font.letterSpacing: 1.1
+            }
+          }
 
-              RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: root.rowPadding
-                anchors.rightMargin: root.rowPadding
-                spacing: Style.space(10)
+          ListView {
+            id: list
+            width: parent.width
+            height: root.listHeight
+            clip: true
+            interactive: false
+            model: root.windows
+            currentIndex: root.selectedIndex
+            highlightMoveDuration: 0
+            preferredHighlightBegin: 0
+            preferredHighlightEnd: height
+            highlightRangeMode: ListView.ApplyRange
 
-                // App column: icon, name and window count, on the first row only.
+            RowText {
+              anchors.centerIn: parent
+              visible: root.windows.length === 0
+              text: "Nothing matches “" + root.filterText + "”"
+              color: root.faint
+            }
+
+            delegate: Item {
+              id: row
+              required property int index
+              required property var modelData
+              readonly property bool selected: index === root.selectedIndex
+              readonly property bool block: root.startsBlock(index)
+
+              width: list.width
+              height: root.rowHeight + (block ? root.groupGap * 2 + 1 : 0)
+
+              // Hairline that closes the app above.
+              Rectangle {
+                visible: row.block
+                y: root.groupGap
+                x: root.rowPadding
+                width: parent.width - root.rowPadding * 2
+                height: 1
+                color: root.hairline
+              }
+
+              Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: root.rowHeight
+                radius: Style.space(10)
+                color: row.selected ? root.cursorFill : "transparent"
+
                 RowLayout {
-                  Layout.preferredWidth: root.appColumn
-                  Layout.maximumWidth: root.appColumn
-                  spacing: Style.space(8)
-                  opacity: row.modelData.first ? 1 : 0
+                  anchors.fill: parent
+                  anchors.leftMargin: root.rowPadding
+                  anchors.rightMargin: root.rowPadding
+                  spacing: Style.space(12)
 
-                  Image {
-                    Layout.preferredWidth: Style.space(18)
-                    Layout.preferredHeight: Style.space(18)
-                    fillMode: Image.PreserveAspectFit
-                    sourceSize.width: width * Screen.devicePixelRatio
-                    sourceSize.height: height * Screen.devicePixelRatio
-                    source: row.modelData.first ? root.appIcon(row.modelData.appClass) : ""
-                    asynchronous: true
+                  // App column: icon, name and window count, first row only.
+                  RowLayout {
+                    Layout.preferredWidth: root.appColumn
+                    Layout.maximumWidth: root.appColumn
+                    Layout.fillHeight: true
+                    spacing: Style.space(10)
+                    visible: row.modelData.first
+
+                    Image {
+                      Layout.preferredWidth: root.iconSize
+                      Layout.preferredHeight: root.iconSize
+                      fillMode: Image.PreserveAspectFit
+                      sourceSize.width: width * Screen.devicePixelRatio
+                      sourceSize.height: height * Screen.devicePixelRatio
+                      source: row.modelData.first ? root.appIcon(row.modelData.appClass) : ""
+                      asynchronous: true
+                      smooth: true
+                      mipmap: true
+                    }
+
+                    // "Brave (2)": the count follows the name, in a lighter tone.
+                    RowText {
+                      Layout.maximumWidth: root.appColumn - root.iconSize - Style.space(40)
+                      text: root.friendlyAppName(row.modelData.appClass)
+                      color: row.selected ? root.foreground : root.muted
+                      font.weight: Font.Medium
+                    }
+
+                    RowText {
+                      visible: (row.modelData.count || 1) > 1
+                      Layout.leftMargin: -Style.space(5)
+                      text: "(" + row.modelData.count + ")"
+                      color: root.faint
+                      elide: Text.ElideNone
+                    }
+
+                    Item { Layout.fillWidth: true }
+                  }
+                  Item {
+                    visible: !row.modelData.first
+                    Layout.preferredWidth: root.appColumn
                   }
 
-                  Text {
+                  RowText {
                     Layout.fillWidth: true
-                    elide: Text.ElideRight
-                    textFormat: Text.PlainText
-                    text: root.friendlyAppName(row.modelData.appClass)
-                    color: row.selected ? root.selectedText : root.muted
-                    font.family: root.fontFamily
-                    font.pixelSize: root.rowFont
-                    font.weight: Font.Medium
+                    text: row.modelData.title || root.friendlyAppName(row.modelData.appClass)
+                    color: row.modelData.current && !row.selected ? root.muted : root.foreground
+                    font.weight: row.selected ? Font.Medium : Font.Normal
                   }
 
-                  Text {
-                    visible: (row.modelData.count || 1) > 1
-                    textFormat: Text.PlainText
-                    text: String(row.modelData.count)
-                    color: row.selected ? root.selectedText : root.faint
-                    opacity: row.selected ? 0.6 : 1
-                    font.family: root.fontFamily
-                    font.pixelSize: root.rowFont
+                  RowText {
+                    Layout.preferredWidth: root.wsColumn
+                    horizontalAlignment: Text.AlignRight
+                    text: row.modelData.workspace
+                    color: row.selected ? root.accent : root.faint
+                    font.weight: row.selected ? Font.DemiBold : Font.Normal
                   }
-                }
-
-                Text {
-                  Layout.fillWidth: true
-                  elide: Text.ElideRight
-                  textFormat: Text.PlainText
-                  text: row.modelData.title || root.friendlyAppName(row.modelData.appClass)
-                  color: row.selected ? root.selectedText
-                       : (row.modelData.current ? root.muted : root.foreground)
-                  font.family: root.fontFamily
-                  font.pixelSize: root.rowFont
-                  font.weight: Font.Normal
-                }
-
-                Text {
-                  Layout.preferredWidth: root.wsColumn
-                  horizontalAlignment: Text.AlignRight
-                  textFormat: Text.PlainText
-                  text: row.modelData.workspace
-                  color: row.selected ? Color.accent : root.faint
-                  font.family: root.fontFamily
-                  font.pixelSize: root.rowFont
-                  font.weight: row.selected ? Font.Medium : Font.Normal
                 }
               }
             }

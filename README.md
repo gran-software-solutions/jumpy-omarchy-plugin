@@ -7,7 +7,7 @@ Tap to flip back, hold to see every window, type to find one.
 
 `de.gransoftware.hop`&nbsp;&nbsp;·&nbsp;&nbsp;![version](https://img.shields.io/badge/version-1.0.0-2f6f4e?style=flat-square)&nbsp;![shell](https://img.shields.io/badge/Omarchy-shell%20plugin-3b4252?style=flat-square)&nbsp;![hyprland](https://img.shields.io/badge/Hyprland-0.56%2B%20Lua-005f87?style=flat-square)
 
-<img src="preview.png" alt="Hop's window list: a filter field on top, four windows with number keys, app icons, titles and workspace chips, and key hints below" width="100%">
+<img src="preview.png" alt="Hop's window list: windows grouped by app with the app icon, name and window count on the left, titles in the middle, and each window's workspace number on the right" width="100%">
 
 </div>
 
