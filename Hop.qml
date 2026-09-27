@@ -68,13 +68,13 @@ Item {
   // ---- measure ----
   readonly property int rowHeight: Style.space(38)
   readonly property int groupGap: Style.space(6)
-  readonly property int appColumn: Style.space(128)
+  readonly property int appColumn: Style.space(170)
   readonly property int wsColumn: Style.space(28)
   readonly property int rowPadding: Style.space(14)
   readonly property int iconSize: Style.space(20)
   readonly property int maxRows: 14
   readonly property int cardRadius: Style.space(16)
-  readonly property int cardWidth: Math.min(Style.space(500), panel.width - Style.gapsOut * 2)
+  readonly property int cardWidth: Math.min(Style.space(720), panel.width - Style.gapsOut * 2)
 
   // Rows plus the gap each app block after the first adds above itself.
   readonly property int listHeight: {
@@ -381,6 +381,7 @@ Item {
                   // App column: icon, name and window count, first row only.
                   RowLayout {
                     Layout.preferredWidth: root.appColumn
+                    Layout.minimumWidth: root.appColumn
                     Layout.maximumWidth: root.appColumn
                     Layout.fillHeight: true
                     spacing: Style.space(10)
@@ -419,6 +420,7 @@ Item {
                   Item {
                     visible: !row.modelData.first
                     Layout.preferredWidth: root.appColumn
+                    Layout.minimumWidth: root.appColumn
                   }
 
                   RowText {
