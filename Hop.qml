@@ -202,7 +202,7 @@ Item {
     Item {
       id: stage
       width: root.cardWidth
-      height: column.implicitHeight + Style.space(20)
+      height: column.implicitHeight + Style.space(24)
       anchors.centerIn: parent
 
       // Opens with a short settle rather than a pop.
@@ -249,44 +249,64 @@ Item {
         Column {
           id: column
           anchors.fill: parent
-          anchors.margins: Style.space(10)
+          anchors.margins: Style.space(12)
           spacing: 0
 
-          // ---- filter line: only while you are typing ----
+          // ---- header: what you typed (or how many windows) and the column label ----
           Item {
             width: parent.width
-            height: visible ? Style.space(42) : 0
-            visible: root.filterText.length > 0
+            height: Style.space(48)
 
             Row {
               anchors.left: parent.left
               anchors.leftMargin: root.rowPadding
               anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.space(2)
+              spacing: Style.space(10)
+
+              // Typed filter with a caret, while you type.
+              Row {
+                visible: root.filterText.length > 0
+                spacing: Style.space(2)
+                anchors.verticalCenter: parent.verticalCenter
+
+                RowText {
+                  text: root.filterText
+                  color: root.foreground
+                  font.pixelSize: Math.round(root.rowFont * 1.1)
+                  font.weight: Font.Medium
+                  elide: Text.ElideNone
+                }
+                Rectangle {
+                  width: 2
+                  height: Math.round(root.rowFont * 1.2)
+                  radius: 1
+                  color: root.accent
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+              }
 
               RowText {
-                text: root.filterText
-                color: root.foreground
-                font.pixelSize: Math.round(root.rowFont * 1.1)
-                font.weight: Font.Medium
-                elide: Text.ElideNone
-              }
-              Rectangle {
-                width: 2
-                height: Math.round(root.rowFont * 1.2)
-                radius: 1
-                color: root.accent
                 anchors.verticalCenter: parent.verticalCenter
+                text: root.filterText.length > 0
+                      ? root.windows.length + " of " + root.total
+                      : root.total + (root.total === 1 ? " window" : " windows")
+                color: root.faint
+                font.pixelSize: Math.round(root.rowFont * 0.93)
+                elide: Text.ElideNone
               }
             }
 
-            RowText {
+            Text {
               anchors.right: parent.right
               anchors.rightMargin: root.rowPadding
               anchors.verticalCenter: parent.verticalCenter
-              text: root.windows.length + " of " + root.total
+              textFormat: Text.PlainText
+              text: "WORKSPACE"
               color: root.faint
-              font.pixelSize: Math.round(root.rowFont * 0.87)
+              font.family: root.label
+              font.weight: Font.DemiBold
+              font.pixelSize: root.labelFont
+              font.letterSpacing: 1.4
             }
 
             Rectangle {
@@ -300,25 +320,8 @@ Item {
             }
           }
 
-          // ---- column label, once ----
-          Item {
-            width: parent.width
-            height: Style.space(24)
-
-            Text {
-              anchors.right: parent.right
-              anchors.rightMargin: root.rowPadding
-              anchors.bottom: parent.bottom
-              anchors.bottomMargin: Style.space(3)
-              textFormat: Text.PlainText
-              text: "WORKSPACE"
-              color: root.faint
-              font.family: root.label
-              font.weight: Font.DemiBold
-              font.pixelSize: root.labelFont
-              font.letterSpacing: 1.1
-            }
-          }
+          // Air between the header rule and the first row.
+          Item { width: parent.width; height: Style.space(8) }
 
           ListView {
             id: list
