@@ -86,6 +86,42 @@ Item {
     return Math.max(root.rowHeight, h)
   }
 
+  // ---- pointer ----
+  // The pointer may already rest over the list when it opens, so hovering only
+  // takes the cursor once the pointer has actually moved.
+  property point pointerOrigin: Qt.point(-1, -1)
+  property bool pointerLive: false
+
+  function pointerMoved(x, y) {
+    if (root.pointerOrigin.x < 0) { root.pointerOrigin = Qt.point(x, y); return false }
+    if (!root.pointerLive && Math.abs(x - root.pointerOrigin.x) + Math.abs(y - root.pointerOrigin.y) > 6)
+      root.pointerLive = true
+    return root.pointerLive
+  }
+
+  function pointAt(index) {
+    if (index === root.selectedIndex) return
+    root.selectedIndex = index
+    watchdog.restart()
+    Quickshell.execDetached(["hyprctl", "eval", "__jumpy_point(" + index + ")"])
+  }
+
+  function pickAt(index) {
+    Quickshell.execDetached(["hyprctl", "eval", "__jumpy_pick(" + index + ")"])
+  }
+
+  // Index of the row that opens the app block `index` belongs to.
+  function blockStart(index) {
+    let i = index
+    while (i > 0 && root.windows[i] && !root.windows[i].first) i--
+    return i
+  }
+
+  function lastInBlock(index) {
+    const next = root.windows[index + 1]
+    return !next || next.first
+  }
+
   function startsBlock(index) {
     return index > 0 && !!root.windows[index] && root.windows[index].first
   }
@@ -131,6 +167,8 @@ Item {
 
     if (!root.active) {
       root.active = true
+      root.pointerOrigin = Qt.point(-1, -1)
+      root.pointerLive = false
       revealTimer.restart()
     }
   }
@@ -205,6 +243,12 @@ Item {
       color: root.scrim
     }
 
+    // A click outside the card cancels the switch.
+    MouseArea {
+      anchors.fill: parent
+      onClicked: Quickshell.execDetached(["hyprctl", "eval", "__jumpy_cancel()"])
+    }
+
     Item {
       id: stage
       width: root.cardWidth
@@ -241,6 +285,10 @@ Item {
         // A shade below the theme's surface, so the cursor pill (at the
         // surface colour) sits visibly on top of it.
         color: root.lightTheme ? Qt.darker(root.background, 1.03) : root.background
+
+        // Clicks on the card itself (header, padding) must not reach the
+        // cancel area behind it.
+        MouseArea { anchors.fill: parent }
         border.width: 1
         border.color: root.frame
 
@@ -366,6 +414,14 @@ Item {
               required property var modelData
               readonly property bool selected: index === root.selectedIndex
               readonly property bool block: root.startsBlock(index)
+              readonly property bool grouped: (modelData.count || 1) > 1
+              readonly property bool last: root.lastInBlock(index)
+              // The group the cursor is in draws its thread in the accent.
+              readonly property bool hot: root.blockStart(index) === root.blockStart(root.selectedIndex)
+              readonly property color threadColor: hot ? Util.alpha(root.accent, 0.55)
+                                                       : Util.alpha(root.foreground, 0.16)
+              readonly property real threadX: root.rowPadding + root.iconSize / 2 - 0.75
+              readonly property real rowMid: height - root.rowHeight / 2
 
               width: list.width
               height: root.rowHeight + (block ? root.groupGap * 2 + 1 : 0)
@@ -467,6 +523,58 @@ Item {
                     color: row.selected ? root.accent : root.faint
                     font.weight: row.selected ? Font.DemiBold : Font.Normal
                   }
+                }
+              }
+
+              // Hover takes the cursor, a click switches to the window.
+              MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onPositionChanged: function(mouse) {
+                  const p = mapToItem(null, mouse.x, mouse.y)
+                  if (root.pointerMoved(p.x, p.y)) root.pointAt(row.index)
+                }
+                onClicked: root.pickAt(row.index)
+              }
+
+              // ---- thread: ties an app's windows to its icon ----
+              // Down from under the icon on the app's first row...
+              Rectangle {
+                visible: row.grouped && row.modelData.first
+                x: row.threadX
+                y: row.rowMid + root.iconSize / 2 + Style.space(3)
+                width: 1.5
+                height: row.height - y
+                color: row.threadColor
+              }
+              // ...straight through the windows in between...
+              Rectangle {
+                visible: row.grouped && !row.modelData.first && !row.last
+                x: row.threadX
+                y: 0
+                width: 1.5
+                height: row.height
+                color: row.threadColor
+              }
+              // ...and bending toward the title on the app's last window.
+              Item {
+                visible: row.grouped && !row.modelData.first && row.last
+                x: row.threadX
+                y: 0
+                width: Style.space(9)
+                height: row.rowMid + 0.75
+                clip: true
+
+                Rectangle {
+                  x: 0
+                  y: -Style.space(12)
+                  width: Style.space(24)
+                  height: parent.height + Style.space(12)
+                  radius: Style.space(6)
+                  color: "transparent"
+                  border.width: 1.5
+                  border.color: row.threadColor
                 }
               }
             }

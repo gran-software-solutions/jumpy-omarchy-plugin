@@ -326,6 +326,19 @@ end
 -- The panel's own watchdog calls this if it ever outlives a switch.
 _G.__jumpy_cancel = teardown
 
+-- The pointer, from the panel. Rows arrive zero-based. Hovering moves the
+-- cursor (the panel has already drawn it, so there is nothing to send back);
+-- a click switches to that window.
+_G.__jumpy_point = function(row)
+  if jumpy.active and row >= 0 and row < #jumpy.shown then jumpy.index = row + 1 end
+end
+
+_G.__jumpy_pick = function(row)
+  if not jumpy.active or row < 0 or row >= #jumpy.shown then return end
+  jumpy.index = row + 1
+  commit()
+end
+
 -- Keys -----------------------------------------------------------------------
 
 hl.unbind("ALT + TAB")
