@@ -62,7 +62,7 @@ Item {
   // the bar and the menus.
   readonly property string sans: Style.font.menuFamily
   readonly property string label: Style.font.menuFamily
-  readonly property int rowFont: Math.round(Style.font.body * 1.17)       // 14 at the default size
+  readonly property int rowFont: Style.font.body                          // 12 at the default size
   readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.95))
 
   // ---- measure ----
@@ -176,6 +176,9 @@ Item {
   }
 
   component RowText: Text {
+    // Every text in a row fills the row's height and centres in it, so the
+    // app name, title and workspace share one baseline.
+    Layout.fillHeight: true
     textFormat: Text.PlainText
     elide: Text.ElideRight
     font.family: root.sans
