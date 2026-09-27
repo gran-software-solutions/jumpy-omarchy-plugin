@@ -6,9 +6,13 @@
 //   omarchy-shell hop show '{"windows":[...],"index":1,"filter":"",...}'
 //   omarchy-shell hop hide
 //
+// The list arrives grouped by app. Each window says whether it opens its app's
+// block ("first") and how many windows the block has ("count"); the app's
+// icon, name and count are drawn once, on the first row, and a hairline
+// separates one app from the next.
+//
 // The panel never takes keyboard focus: while a switch is up, Hyprland's "hop"
 // submap swallows stray keys, so a grab here would only add a way to get stuck.
-//
 // A quick Alt+Tab is committed before showDelay runs out, so the list is never
 // drawn for it and the flip feels instant.
 
@@ -32,7 +36,6 @@ Item {
   property var windows: []
   property int selectedIndex: 0
   property string filterText: ""
-  property string mode: "all"
   property int total: 0
 
   readonly property int showDelay: 90
@@ -43,23 +46,31 @@ Item {
   property color selectedText: Color.menu.selectedText
   // Same hairline card frame as Yank and Sesame.
   readonly property var borderSpec: Border.flat(Util.alpha(Color.menu.border, 0.4), 1)
-  readonly property bool lightTheme: background.hslLightness > 0.5
-  readonly property color keycapFill: lightTheme ? Util.alpha("#ffffff", 0.55) : Util.alpha(foreground, 0.07)
-  readonly property color keycapBorder: Util.alpha(foreground, 0.20)
-  readonly property color keycapText: Util.alpha(foreground, 0.9)
-  readonly property color keycapAccentFill: Util.alpha(selectedText, 0.15)
-  readonly property color keycapAccentBorder: Util.alpha(selectedText, 0.45)
-  readonly property color hintLabel: Util.alpha(foreground, 0.68)
+  readonly property color hairline: Util.alpha(foreground, 0.09)
+  readonly property color faint: Util.alpha(foreground, 0.45)
+  readonly property color muted: Util.alpha(foreground, 0.68)
 
   readonly property string fontFamily: Style.font.menuFamily
-  readonly property int metaFont: Math.max(9, Math.round(Style.font.caption * 0.82))
-  readonly property int capHeight: metaFont + Style.space(7)
-  readonly property int contentMargin: Style.space(7)
-  readonly property int headerHeight: Style.space(34)
-  readonly property int footerHeight: Style.space(34)
-  readonly property int rowHeight: Style.space(44)
-  readonly property int maxRows: 9
-  readonly property int cardWidth: Math.min(Style.space(680), panel.width - Style.gapsOut * 2)
+  readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.82))
+  readonly property int rowHeight: Style.space(32)
+  readonly property int groupGap: Style.space(4)
+  readonly property int appColumn: Style.space(118)
+  readonly property int wsColumn: Style.space(28)
+  readonly property int rowPadding: Style.space(10)
+  readonly property int maxRows: 14
+  readonly property int cardWidth: Math.min(Style.space(460), panel.width - Style.gapsOut * 2)
+
+  // Rows plus the gap each app block after the first adds above itself.
+  readonly property int listHeight: {
+    let h = 0
+    const n = Math.min(root.windows.length, root.maxRows)
+    for (let i = 0; i < n; i++) h += root.rowHeight + (root.startsBlock(i) ? root.groupGap * 2 + 1 : 0)
+    return Math.max(root.rowHeight, h)
+  }
+
+  function startsBlock(index) {
+    return index > 0 && !!root.windows[index] && root.windows[index].first
+  }
 
   function friendlyAppName(appClass) {
     const raw = String(appClass || "").trim()
@@ -98,7 +109,6 @@ Item {
     root.windows = payload.windows || []
     root.selectedIndex = payload.index || 0
     root.filterText = payload.filter || ""
-    root.mode = payload.mode || "all"
     root.total = payload.total || root.windows.length
 
     if (!root.active) {
@@ -149,29 +159,6 @@ Item {
     }
   }
 
-  component KeyCap: Rectangle {
-    id: keyCap
-    property string label
-    property bool primary: false
-    width: keyCapLabel.implicitWidth + Style.space(9)
-    height: root.capHeight
-    radius: 5
-    color: keyCap.primary ? root.keycapAccentFill : root.keycapFill
-    border.color: keyCap.primary ? root.keycapAccentBorder : root.keycapBorder
-    border.width: 1
-
-    Text {
-      id: keyCapLabel
-      anchors.centerIn: parent
-      textFormat: Text.PlainText
-      text: keyCap.label
-      color: root.keycapText
-      font.family: root.fontFamily
-      font.pixelSize: root.metaFont
-      font.weight: keyCap.primary ? Font.DemiBold : Font.Normal
-    }
-  }
-
   PanelWindow {
     id: panel
 
@@ -197,7 +184,7 @@ Item {
       radius: Style.cornerRadius
       color: root.background
       borderSpec: root.borderSpec
-      padding: root.contentMargin
+      padding: Style.space(6)
 
       Column {
         id: column
@@ -208,73 +195,70 @@ Item {
         anchors.leftMargin: card.contentLeftInset
         spacing: 0
 
-        // ---- header: the filter you are typing, with Alt held ----
+        // ---- filter line: only while you are typing ----
         Item {
           width: parent.width
-          height: root.headerHeight + Style.space(10)
+          height: visible ? Style.space(34) : 0
+          visible: root.filterText.length > 0
 
-          Rectangle {
+          Text {
             anchors.left: parent.left
-            anchors.right: modeLabel.left
+            anchors.leftMargin: root.rowPadding
+            anchors.right: countLabel.left
             anchors.rightMargin: Style.space(10)
             anchors.verticalCenter: parent.verticalCenter
-            height: root.headerHeight
-            radius: Style.space(8)
-            color: Util.alpha(root.foreground, 0.05)
-            border.width: 1
-            border.color: root.filterText.length > 0
-                          ? Util.alpha(Color.accent, 0.55)
-                          : Util.alpha(root.foreground, 0.10)
-
-            Text {
-              id: searchIcon
-              anchors.left: parent.left
-              anchors.leftMargin: Style.space(11)
-              anchors.verticalCenter: parent.verticalCenter
-              text: "󰍉"
-              color: root.filterText.length > 0 ? Color.accent : root.foreground
-              opacity: root.filterText.length > 0 ? 1 : 0.4
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.title
-            }
-
-            Text {
-              anchors.left: searchIcon.right
-              anchors.leftMargin: Style.space(9)
-              anchors.right: parent.right
-              anchors.rightMargin: Style.space(10)
-              anchors.verticalCenter: parent.verticalCenter
-              textFormat: Text.PlainText
-              text: root.filterText || "Keep Alt held and type to filter"
-              color: root.foreground
-              opacity: root.filterText.length > 0 ? 1 : 0.38
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.subtitle
-              elide: Text.ElideLeft
-            }
+            textFormat: Text.PlainText
+            text: root.filterText
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.subtitle
+            elide: Text.ElideLeft
           }
 
           Text {
-            id: modeLabel
+            id: countLabel
             anchors.right: parent.right
-            anchors.rightMargin: Style.space(4)
+            anchors.rightMargin: root.rowPadding
             anchors.verticalCenter: parent.verticalCenter
             textFormat: Text.PlainText
-            text: root.mode === "app" && root.windows.length > 0
-                  ? root.friendlyAppName(root.windows[0].appClass) + " windows"
-                  : "All windows"
-            color: root.foreground
-            opacity: 0.45
+            text: root.windows.length + " of " + root.total
+            color: root.faint
             font.family: root.fontFamily
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: root.labelFont
+          }
+
+          Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: root.hairline
           }
         }
 
-        // ---- the list ----
+        // ---- column label, once ----
+        Item {
+          width: parent.width
+          height: Style.space(20)
+
+          Text {
+            anchors.right: parent.right
+            anchors.rightMargin: root.rowPadding
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Style.space(2)
+            textFormat: Text.PlainText
+            text: "WORKSPACE"
+            color: root.faint
+            font.family: root.fontFamily
+            font.pixelSize: root.labelFont
+            font.letterSpacing: 0.8
+          }
+        }
+
         ListView {
           id: list
           width: parent.width
-          height: Math.max(1, Math.min(root.windows.length, root.maxRows)) * root.rowHeight
+          height: root.listHeight
           clip: true
           interactive: false
           model: root.windows
@@ -289,144 +273,103 @@ Item {
             visible: root.windows.length === 0
             textFormat: Text.PlainText
             text: "No window matches “" + root.filterText + "”"
-            color: root.foreground
-            opacity: 0.45
+            color: root.faint
             font.family: root.fontFamily
             font.pixelSize: Style.font.body
           }
 
-          delegate: Rectangle {
+          delegate: Item {
             id: row
             required property int index
             required property var modelData
             readonly property bool selected: index === root.selectedIndex
+            readonly property bool block: root.startsBlock(index)
 
             width: list.width
-            height: root.rowHeight
-            radius: Style.space(8)
-            color: selected ? root.selectedBackground : "transparent"
+            height: root.rowHeight + (block ? root.groupGap * 2 + 1 : 0)
 
-            RowLayout {
-              anchors.fill: parent
-              anchors.leftMargin: Style.space(10)
-              anchors.rightMargin: Style.space(10)
-              spacing: Style.space(10)
+            // Hairline that closes the app above.
+            Rectangle {
+              visible: row.block
+              y: root.groupGap
+              x: root.rowPadding
+              width: parent.width - root.rowPadding * 2
+              height: 1
+              color: root.hairline
+            }
 
-              // Alt+1..9 jumps straight to this row.
-              Item {
-                Layout.preferredWidth: Style.space(20)
-                Layout.preferredHeight: root.capHeight
-                KeyCap {
-                  anchors.centerIn: parent
-                  visible: row.index < 9
-                  label: String(row.index + 1)
-                  primary: row.selected
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              height: root.rowHeight
+              radius: Style.space(7)
+              color: row.selected ? root.selectedBackground : "transparent"
+
+              RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: root.rowPadding
+                anchors.rightMargin: root.rowPadding
+                spacing: Style.space(10)
+
+                // App column: icon, name and window count, on the first row only.
+                RowLayout {
+                  Layout.preferredWidth: root.appColumn
+                  Layout.maximumWidth: root.appColumn
+                  spacing: Style.space(8)
+                  opacity: row.modelData.first ? 1 : 0
+
+                  Image {
+                    Layout.preferredWidth: Style.space(18)
+                    Layout.preferredHeight: Style.space(18)
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize.width: width * Screen.devicePixelRatio
+                    sourceSize.height: height * Screen.devicePixelRatio
+                    source: row.modelData.first ? root.appIcon(row.modelData.appClass) : ""
+                    asynchronous: true
+                  }
+
+                  Text {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    textFormat: Text.PlainText
+                    text: root.friendlyAppName(row.modelData.appClass)
+                    color: row.selected ? root.selectedText : root.muted
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.bodySmall
+                    font.weight: Font.Medium
+                  }
+
+                  Text {
+                    visible: (row.modelData.count || 1) > 1
+                    textFormat: Text.PlainText
+                    text: String(row.modelData.count)
+                    color: root.faint
+                    font.family: root.fontFamily
+                    font.pixelSize: root.labelFont + 1
+                  }
                 }
-              }
-
-              Image {
-                Layout.preferredWidth: Style.space(26)
-                Layout.preferredHeight: Style.space(26)
-                fillMode: Image.PreserveAspectFit
-                sourceSize.width: width * Screen.devicePixelRatio
-                sourceSize.height: height * Screen.devicePixelRatio
-                source: root.appIcon(row.modelData.appClass)
-                asynchronous: true
-              }
-
-              Column {
-                Layout.fillWidth: true
-                spacing: Style.space(1)
 
                 Text {
-                  width: parent.width
+                  Layout.fillWidth: true
                   elide: Text.ElideRight
                   textFormat: Text.PlainText
                   text: row.modelData.title || root.friendlyAppName(row.modelData.appClass)
-                  color: row.selected ? root.selectedText : root.foreground
+                  color: row.selected ? root.selectedText
+                       : (row.modelData.current ? root.muted : root.foreground)
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.subtitle
+                  font.weight: row.selected ? Font.Medium : Font.Normal
                 }
 
                 Text {
-                  width: parent.width
-                  elide: Text.ElideRight
-                  textFormat: Text.PlainText
-                  text: root.friendlyAppName(row.modelData.appClass)
-                        + (row.modelData.current ? "  ·  current" : "")
-                  color: row.selected ? root.selectedText : root.foreground
-                  opacity: 0.55
-                  font.family: root.fontFamily
-                  font.pixelSize: root.metaFont + 1
-                }
-              }
-
-              // Workspace chip, so a jump across workspaces is expected.
-              Rectangle {
-                Layout.preferredHeight: root.capHeight + Style.space(2)
-                Layout.preferredWidth: Math.max(height, wsLabel.implicitWidth + Style.space(12))
-                radius: height / 2
-                color: Util.alpha(row.selected ? root.selectedText : root.foreground, 0.08)
-
-                Text {
-                  id: wsLabel
-                  anchors.centerIn: parent
+                  Layout.preferredWidth: root.wsColumn
+                  horizontalAlignment: Text.AlignRight
                   textFormat: Text.PlainText
                   text: row.modelData.workspace
-                  color: row.selected ? root.selectedText : root.foreground
-                  opacity: 0.75
+                  color: row.selected ? Color.accent : root.muted
                   font.family: root.fontFamily
-                  font.pixelSize: root.metaFont
-                }
-              }
-            }
-          }
-        }
-
-        // ---- footer: count + key hints ----
-        Item {
-          width: parent.width
-          height: root.footerHeight
-
-          Text {
-            anchors.left: parent.left
-            anchors.leftMargin: Style.space(4)
-            anchors.verticalCenter: parent.verticalCenter
-            textFormat: Text.PlainText
-            text: root.windows.length === root.total
-                  ? root.total + (root.total === 1 ? " window" : " windows")
-                  : root.windows.length + " of " + root.total
-            color: root.foreground
-            opacity: 0.45
-            font.family: root.fontFamily
-            font.pixelSize: root.metaFont
-          }
-
-          Row {
-            anchors.right: parent.right
-            anchors.rightMargin: Style.space(4)
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(14)
-
-            Repeater {
-              model: [
-                { keys: "Release Alt", label: "Switch", primary: true },
-                { keys: "Alt+1–9", label: "Jump" },
-                { keys: "Alt+Del", label: "Close" },
-                { keys: "Esc", label: "Cancel" }
-              ]
-
-              delegate: Row {
-                required property var modelData
-                spacing: Style.space(6)
-                KeyCap { label: modelData.keys; primary: !!modelData.primary; anchors.verticalCenter: parent.verticalCenter }
-                Text {
-                  textFormat: Text.PlainText
-                  text: modelData.label
-                  color: root.hintLabel
-                  font.family: root.fontFamily
-                  font.pixelSize: root.metaFont
-                  anchors.verticalCenter: parent.verticalCenter
+                  font.pixelSize: Style.font.subtitle
                 }
               }
             }

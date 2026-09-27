@@ -9,8 +9,9 @@
 --
 --   Alt+Tab, release        flip to the last window (no list is drawn)
 --   hold Alt, tap Tab       walk the list, most recently used first
---   hold Alt, type letters  filter by app name or title
---   Alt+1..9                jump straight to that row
+--   hold Alt, type letters  fuzzy filter by app name or title
+--   Alt+Ctrl+H              delete a letter (as does Alt+Backspace)
+--   Alt+Ctrl+U              clear the filter
 --   Alt+Delete              close the selected window, list stays open
 --   Alt+`                   same, but only windows of the current app
 --   Alt+Escape              cancel
@@ -99,10 +100,44 @@ local function score(window, query)
   return nil
 end
 
+-- Pull each app's windows together. Apps keep the order in which they first
+-- appear in `list` (recency, or match quality while filtering), and so do the
+-- windows inside an app. Each window learns whether it opens its app's block
+-- and how big that block is, which is all the panel needs to draw it.
+local function group(list)
+  local order, by_app = {}, {}
+  for _, window in ipairs(list) do
+    local key = window.class
+    if not by_app[key] then
+      by_app[key] = {}
+      order[#order + 1] = key
+    end
+    table.insert(by_app[key], window)
+  end
+
+  local grouped = {}
+  for _, key in ipairs(order) do
+    local block = by_app[key]
+    for i, window in ipairs(block) do
+      window.first = i == 1
+      window.count = #block
+      grouped[#grouped + 1] = window
+    end
+  end
+  return grouped
+end
+
+local function position(list, target)
+  for i, window in ipairs(list) do
+    if window == target then return i end
+  end
+  return 1
+end
+
 local function refilter()
   local query = hop.filter:lower()
   if query == "" then
-    hop.shown = hop.windows
+    hop.shown = group(hop.windows)
     return
   end
 
@@ -117,14 +152,9 @@ local function refilter()
     return a.order < b.order
   end)
 
-  hop.shown = {}
-  for _, entry in ipairs(scored) do hop.shown[#hop.shown + 1] = entry.window end
-
-  -- You are already on the window you are leaving. Push it to the end, so a
-  -- query that matches it and something else lands on the something else.
-  if #hop.shown > 1 and hop.shown[1].current then
-    table.insert(hop.shown, table.remove(hop.shown, 1))
-  end
+  local matches = {}
+  for _, entry in ipairs(scored) do matches[#matches + 1] = entry.window end
+  hop.shown = group(matches)
 end
 
 -- Snapshot -------------------------------------------------------------------
@@ -168,9 +198,9 @@ local function payload()
   local rows = {}
   for _, w in ipairs(hop.shown) do
     rows[#rows + 1] = string.format(
-      '{"title":%s,"appClass":%s,"workspace":%s,"current":%s}',
+      '{"title":%s,"appClass":%s,"workspace":%s,"current":%s,"first":%s,"count":%d}',
       json_string(w.title), json_string(w.class), json_string(w.workspace),
-      w.current and "true" or "false"
+      w.current and "true" or "false", w.first and "true" or "false", w.count or 1
     )
   end
   return string.format(
@@ -218,7 +248,7 @@ local function start(mode, delta)
   end
 
   hop.windows = windows
-  hop.shown = windows
+  hop.shown = group(windows)
   hop.mode = mode
   hop.filter = ""
   hop.active = true
@@ -227,7 +257,9 @@ local function start(mode, delta)
 
   -- Entry 1 is where you are, so one tap lands on entry 2 and one back-tap
   -- wraps to the oldest.
-  hop.index = delta % #hop.shown + 1
+  -- The list is grouped by app, but the cursor still starts on the window you
+  -- used last (or, backwards, the oldest), wherever grouping put it.
+  hop.index = position(hop.shown, windows[delta % #windows + 1])
 
   hl.dispatch(hl.dsp.submap(SUBMAP))
   if poll then poll:set_enabled(true) end
@@ -247,9 +279,13 @@ end
 local function set_filter(text)
   hop.filter = text
   refilter()
-  -- With no filter the list is back in recency order, where row 1 is the
-  -- window you are on; the cursor goes to row 2, as it did at the start.
-  hop.index = (text == "" and #hop.shown > 1) and 2 or 1
+  if text == "" then
+    -- Back to the full list: the cursor returns to the window used last.
+    hop.index = position(hop.shown, hop.windows[2] or hop.windows[1])
+  else
+    -- The best match, unless that is the window you are already on.
+    hop.index = (#hop.shown > 1 and hop.shown[1].current) and 2 or 1
+  end
   redraw()
 end
 
@@ -262,10 +298,8 @@ local function backspace()
   set_filter(hop.filter:sub(1, -2))
 end
 
-local function jump(row)
-  if not hop.active or row > #hop.shown then return end
-  hop.index = row
-  commit()
+local function clear_filter()
+  if hop.active and hop.filter ~= "" then set_filter("") end
 end
 
 local function close_selected()
@@ -312,6 +346,8 @@ hl.define_submap(SUBMAP, function()
   hl.bind("ALT + ESCAPE", teardown)
   hl.bind("ESCAPE", teardown)
   hl.bind("ALT + BACKSPACE", backspace, { repeating = true })
+  hl.bind("ALT + CTRL + h", backspace, { repeating = true })
+  hl.bind("ALT + CTRL + u", clear_filter)
   hl.bind("ALT + DELETE", close_selected)
 
   for code = string.byte("a"), string.byte("z") do
@@ -321,9 +357,6 @@ hl.define_submap(SUBMAP, function()
   hl.bind("ALT + space", function() type_char(" ") end)
   hl.bind("ALT + minus", function() type_char("-") end)
   hl.bind("ALT + period", function() type_char(".") end)
-  for row = 1, 9 do
-    hl.bind("ALT + " .. row, function() jump(row) end)
-  end
 
   -- Everything else is swallowed while the list is up.
   hl.bind("catchall", hl.dsp.no_op())

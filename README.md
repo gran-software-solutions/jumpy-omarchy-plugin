@@ -19,9 +19,13 @@ Most switchers make you look before you move. Hop does not:
 
 - **A quick tap is instant.** Alt+Tab and release flips to your last window.
   The list only appears if you hold Alt a moment longer.
-- **Type while holding Alt** to filter by app name or title. `br` finds Brave,
+- **Type while holding Alt** to fuzzy-filter by app name or title. `br` finds Brave,
   `vsc` finds Visual Studio Code, the title works too.
-- **Alt+1–9 jumps** straight to a row, without tabbing down to it.
+- **Grouped by app.** Each app's windows sit together, its icon, name and
+  window count shown once on the left, with a hairline between apps. Apps
+  come in the order you used them, and the cursor still starts on your last
+  window.
+- **The workspace** of every window is a number in the right column.
 - **Alt+Delete closes** the selected window and keeps the list open, so you
   can tidy up several at once.
 - **Alt+`** shows only the windows of the app you are in.
@@ -36,8 +40,9 @@ Most switchers make you look before you move. Hop does not:
 | --- | --- |
 | `Alt+Tab`, release | Flip to the last window |
 | `Alt+Tab` again, Alt held | Move down the list (`Alt+Shift+Tab` moves up) |
-| `Alt` + letters | Filter; `Alt+Backspace` deletes a letter |
-| `Alt+1`…`Alt+9` | Switch to that row now |
+| `Alt` + letters | Filter |
+| `Alt+Backspace` or `Alt+Ctrl+H` | Delete a letter |
+| `Alt+Ctrl+U` | Clear the filter |
 | `Alt+↑` `Alt+↓` | Move the cursor |
 | `Alt+Delete` | Close the selected window |
 | `` Alt+` `` | Windows of the current app only |
