@@ -561,7 +561,7 @@ Item {
               spacing: Style.space(14)
 
               Hint { keys: ["@tab"]; action: "next" }
-              Hint { keys: ["@ctrl", "J", "K"]; action: "move" }
+              Hint { keys: ["@ctrl", "J", "K"]; action: "down/up" }
               Hint { keys: ["@ctrl", "W"]; action: "close" }
               Hint { keys: ["@ctrl", "U"]; action: "clear" }
               Hint { keys: ["Esc"]; action: "cancel" }
