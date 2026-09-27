@@ -16,8 +16,7 @@
 // A quick Alt+Tab is committed before showDelay runs out, so the list is never
 // drawn for it and the flip feels instant.
 //
-// Colours come from the active Omarchy theme. Type is Gran's Barlow, which
-// falls back to the theme's menu font where Barlow is not installed.
+// Colours and type come from the active Omarchy theme and font.
 
 import Quickshell
 import Quickshell.Io
@@ -59,9 +58,11 @@ Item {
   readonly property color scrim: Util.alpha("#000000", lightTheme ? 0.10 : 0.28)
 
   // ---- type ----
-  readonly property string sans: "Barlow"
-  readonly property string label: "Barlow Semi Condensed"
-  readonly property int rowFont: Math.round(Style.font.body * 1.25)       // 15 at the default size
+  // The Omarchy system font, as set with `omarchy font set`, so Hop matches
+  // the bar and the menus.
+  readonly property string sans: Style.font.menuFamily
+  readonly property string label: Style.font.menuFamily
+  readonly property int rowFont: Math.round(Style.font.body * 1.17)       // 14 at the default size
   readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.95))
 
   // ---- measure ----
