@@ -267,11 +267,20 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.space(10)
 
-              // Typed filter with a caret, while you type.
+              // Search glyph, the typed filter and a caret, while you type.
               Row {
                 visible: root.filterText.length > 0
                 spacing: Style.space(2)
                 anchors.verticalCenter: parent.verticalCenter
+
+                Text {
+                  anchors.verticalCenter: parent.verticalCenter
+                  rightPadding: Style.space(6)
+                  text: "\u{F0349}"   // nf-md-magnify, from the theme's Nerd Font
+                  color: root.faint
+                  font.family: Style.font.family
+                  font.pixelSize: Math.round(root.rowFont * 1.25)
+                }
 
                 RowText {
                   text: root.filterText
