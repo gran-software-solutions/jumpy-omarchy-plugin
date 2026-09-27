@@ -1,13 +1,13 @@
 <div align="center">
 
-# Hop
+# Jumpy
 
 **Alt+Tab for the Omarchy shell, built for speed.**
 Tap to flip back, hold to see every window, type to find one.
 
-`de.gransoftware.hop`&nbsp;&nbsp;·&nbsp;&nbsp;![version](https://img.shields.io/badge/version-1.0.0-2f6f4e?style=flat-square)&nbsp;![shell](https://img.shields.io/badge/Omarchy-shell%20plugin-3b4252?style=flat-square)&nbsp;![hyprland](https://img.shields.io/badge/Hyprland-0.56%2B%20Lua-005f87?style=flat-square)
+`de.gransoftware.jumpy`&nbsp;&nbsp;·&nbsp;&nbsp;![version](https://img.shields.io/badge/version-1.0.0-2f6f4e?style=flat-square)&nbsp;![shell](https://img.shields.io/badge/Omarchy-shell%20plugin-3b4252?style=flat-square)&nbsp;![hyprland](https://img.shields.io/badge/Hyprland-0.56%2B%20Lua-005f87?style=flat-square)
 
-<img src="preview.png" alt="Hop's window list: windows grouped by app with the app icon, name and window count on the left, titles in the middle, and each window's workspace number on the right" width="100%">
+<img src="preview.png" alt="Jumpy's window list: windows grouped by app with the app icon, name and window count on the left, titles in the middle, and each window's workspace number on the right" width="100%">
 
 </div>
 
@@ -15,7 +15,7 @@ Tap to flip back, hold to see every window, type to find one.
 
 ## Why
 
-Most switchers make you look before you move. Hop does not:
+Most switchers make you look before you move. Jumpy does not:
 
 - **A quick tap is instant.** Alt+Tab and release flips to your last window.
   The list only appears if you hold Alt a moment longer.
@@ -31,7 +31,7 @@ Most switchers make you look before you move. Hop does not:
 - **Alt+`** shows only the windows of the app you are in.
 - **Every window, every workspace**, apps most recently used first. The list is
   frozen while you switch, so rows never move under you.
-- **Nothing leaks.** While the list is up, keys Hop does not use are swallowed
+- **Nothing leaks.** While the list is up, keys Jumpy does not use are swallowed
   instead of landing in the window behind it.
 
 ## Keys
@@ -52,13 +52,13 @@ Most switchers make you look before you move. Hop does not:
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/gran-software-solutions/hop-omarchy-plugin.git --enable --yes
+omarchy plugin add https://github.com/gran-software-solutions/jumpy-omarchy-plugin.git --enable --yes
 ```
 
 Then load the keys from `~/.config/hypr/bindings.lua` and run `hyprctl reload`:
 
 ```lua
-dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/de.gransoftware.hop/hop.lua")
+dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/de.gransoftware.jumpy/jumpy.lua")
 ```
 
 That line replaces Omarchy's default `Alt+Tab` bindings and unbinds them
@@ -71,8 +71,8 @@ configured in Lua. Nothing else to install.
 ### Update and remove
 
 ```bash
-omarchy plugin update de.gransoftware.hop
-omarchy plugin remove de.gransoftware.hop
+omarchy plugin update de.gransoftware.jumpy
+omarchy plugin remove de.gransoftware.jumpy
 ```
 
 After removing, delete the `dofile` line and run `hyprctl reload`.
@@ -84,16 +84,16 @@ After removing, delete the `dofile` line and run `hyprctl reload`.
 
 | File | Purpose |
 |------|---------|
-| `hop.lua` | Runs inside Hyprland: keys, window snapshot, filter, cursor |
-| `Hop.qml` | Runs inside `omarchy-shell`: draws the list, nothing else |
+| `jumpy.lua` | Runs inside Hyprland: keys, window snapshot, filter, cursor |
+| `Jumpy.qml` | Runs inside `omarchy-shell`: draws the list, nothing else |
 | `manifest.json` | Plugin manifest — `panel` kind, `keepLoaded` |
 
-`hop.lua` drives the panel with `omarchy-shell hop show '<json>'` and
-`omarchy-shell hop hide`. The panel waits 90 ms before it draws, so a quick
+`jumpy.lua` drives the panel with `omarchy-shell jumpy show '<json>'` and
+`omarchy-shell jumpy hide`. The panel waits 90 ms before it draws, so a quick
 tap is over before anything appears.
 
-While a switch is up, Hyprland is in a `hop` submap whose catchall eats every
-key Hop does not bind. Three things end it, so it can never hold the keyboard:
+While a switch is up, Hyprland is in a `jumpy` submap whose catchall eats every
+key Jumpy does not bind. Three things end it, so it can never hold the keyboard:
 the Alt release (read from the raw key stream, since a release bind on a
 modifier does not fire once Tab was pressed), a timer that notices Alt is up,
 and a 20 second timeout on both halves.

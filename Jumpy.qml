@@ -1,17 +1,17 @@
-// Hop: the window list for the Alt+Tab switcher.
+// Jumpy: the window list for the Alt+Tab switcher.
 //
-// Display only. hop.lua, loaded from the Hyprland config, owns the keys, the
+// Display only. jumpy.lua, loaded from the Hyprland config, owns the keys, the
 // frozen window list, the filter and the cursor, and drives this panel:
 //
-//   omarchy-shell hop show '{"windows":[...],"index":1,"filter":"",...}'
-//   omarchy-shell hop hide
+//   omarchy-shell jumpy show '{"windows":[...],"index":1,"filter":"",...}'
+//   omarchy-shell jumpy hide
 //
 // The list arrives grouped by app. Each window says whether it opens its app's
 // block ("first") and how many windows the block has ("count"); the app's
 // icon, name and count, "Brave (2)", are drawn once, on the first row, and a hairline
 // separates one app from the next.
 //
-// The panel never takes keyboard focus: while a switch is up, Hyprland's "hop"
+// The panel never takes keyboard focus: while a switch is up, Hyprland's "jumpy"
 // submap swallows stray keys, so a grab here would only add a way to get stuck.
 // A quick Alt+Tab is committed before showDelay runs out, so the list is never
 // drawn for it and the flip feels instant.
@@ -58,7 +58,7 @@ Item {
   readonly property color scrim: Util.alpha("#000000", lightTheme ? 0.10 : 0.28)
 
   // ---- type ----
-  // The Omarchy system font, as set with `omarchy font set`, so Hop matches
+  // The Omarchy system font, as set with `omarchy font set`, so Jumpy matches
   // the bar and the menus.
   readonly property string sans: Style.font.menuFamily
   readonly property string label: Style.font.menuFamily
@@ -117,7 +117,7 @@ Item {
     try {
       payload = JSON.parse(payloadJson)
     } catch (error) {
-      console.warn("hop: unreadable payload:", error)
+      console.warn("jumpy: unreadable payload:", error)
       root.hide()
       return
     }
@@ -146,19 +146,19 @@ Item {
     onTriggered: if (root.active) root.opened = true
   }
 
-  // If hop.lua ever misses the end of a switch, give up and tell it to reset,
+  // If jumpy.lua ever misses the end of a switch, give up and tell it to reset,
   // so the two halves cannot disagree about whether a switch is running.
   Timer {
     id: watchdog
     interval: 20000
     onTriggered: {
       root.hide()
-      Quickshell.execDetached(["hyprctl", "eval", "__hop_cancel()"])
+      Quickshell.execDetached(["hyprctl", "eval", "__jumpy_cancel()"])
     }
   }
 
   IpcHandler {
-    target: "hop"
+    target: "jumpy"
 
     function show(payloadJson: string): string {
       root.show(payloadJson)
@@ -190,7 +190,7 @@ Item {
     visible: root.opened
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    WlrLayershell.namespace: "de.gransoftware.hop"
+    WlrLayershell.namespace: "de.gransoftware.jumpy"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore

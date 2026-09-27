@@ -1,11 +1,11 @@
--- Hop: the Alt+Tab switcher for the Omarchy shell.
+-- Jumpy: the Alt+Tab switcher for the Omarchy shell.
 --
 -- Load it from ~/.config/hypr/bindings.lua:
 --
---   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/de.gransoftware.hop/hop.lua")
+--   dofile(os.getenv("HOME") .. "/.config/omarchy/plugins/de.gransoftware.jumpy/jumpy.lua")
 --
--- This half owns all state and all keys; Hop.qml only draws what it is told,
--- over `omarchy-shell hop show|hide`.
+-- This half owns all state and all keys; Jumpy.qml only draws what it is told,
+-- over `omarchy-shell jumpy show|hide`.
 --
 --   Alt+Tab, release        flip to the last window (no list is drawn)
 --   hold Alt, tap Tab       walk the list, most recently used first
@@ -17,12 +17,12 @@
 --   Alt+`                   same, but only windows of the current app
 --   Alt+Escape              cancel
 --
--- While the list is up, Hyprland is in the "hop" submap, whose catchall
--- swallows every key Hop does not bind, so nothing leaks into the window
+-- While the list is up, Hyprland is in the "jumpy" submap, whose catchall
+-- swallows every key Jumpy does not bind, so nothing leaks into the window
 -- underneath. Three things end the submap so it can never trap the keyboard:
 -- the Alt release, a poll that notices Alt is up, and a hard timeout.
 
-local hop = {
+local jumpy = {
   windows = {},   -- frozen snapshot, most recent first (plain tables)
   shown = {},     -- the filtered view of `windows`
   index = 1,
@@ -33,7 +33,7 @@ local hop = {
   alt_down = false,
 }
 
-local SUBMAP = "hop"
+local SUBMAP = "jumpy"
 local ALT_KEYCODES = { [64] = true, [108] = true } -- Alt_L, Alt_R
 local TIMEOUT_MS = 20000
 
@@ -42,7 +42,7 @@ local function shell_quote(value)
 end
 
 local function send(method, argument)
-  local command = "omarchy-shell -q hop " .. method
+  local command = "omarchy-shell -q jumpy " .. method
   if argument then command = command .. " " .. shell_quote(argument) end
   hl.exec_cmd(command)
 end
@@ -136,14 +136,14 @@ local function position(list, target)
 end
 
 local function refilter()
-  local query = hop.filter:lower()
+  local query = jumpy.filter:lower()
   if query == "" then
-    hop.shown = group(hop.windows)
+    jumpy.shown = group(jumpy.windows)
     return
   end
 
   local scored = {}
-  for order, window in ipairs(hop.windows) do
+  for order, window in ipairs(jumpy.windows) do
     local s = score(window, query)
     if s then scored[#scored + 1] = { window = window, score = s, order = order } end
   end
@@ -155,7 +155,7 @@ local function refilter()
 
   local matches = {}
   for _, entry in ipairs(scored) do matches[#matches + 1] = entry.window end
-  hop.shown = group(matches)
+  jumpy.shown = group(matches)
 end
 
 -- Snapshot -------------------------------------------------------------------
@@ -197,7 +197,7 @@ end
 
 local function payload()
   local rows = {}
-  for _, w in ipairs(hop.shown) do
+  for _, w in ipairs(jumpy.shown) do
     rows[#rows + 1] = string.format(
       '{"title":%s,"appClass":%s,"workspace":%s,"current":%s,"first":%s,"count":%d}',
       json_string(w.title), json_string(w.class), json_string(w.workspace),
@@ -206,8 +206,8 @@ local function payload()
   end
   return string.format(
     '{"windows":[%s],"index":%d,"filter":%s,"mode":%s,"total":%d}',
-    table.concat(rows, ","), hop.index - 1, json_string(hop.filter),
-    json_string(hop.mode), #hop.windows
+    table.concat(rows, ","), jumpy.index - 1, json_string(jumpy.filter),
+    json_string(jumpy.mode), #jumpy.windows
   )
 end
 
@@ -220,17 +220,17 @@ end
 local poll -- created at the bottom, once the functions it calls exist
 
 local function teardown()
-  if not hop.active then return end
-  hop.active = false
-  hop.windows, hop.shown, hop.filter = {}, {}, ""
+  if not jumpy.active then return end
+  jumpy.active = false
+  jumpy.windows, jumpy.shown, jumpy.filter = {}, {}, ""
   if poll then poll:set_enabled(false) end
   hl.dispatch(hl.dsp.submap("reset"))
   send("hide")
 end
 
 local function commit()
-  if not hop.active then return end
-  local target = hop.shown[hop.index]
+  if not jumpy.active then return end
+  local target = jumpy.shown[jumpy.index]
   local address = target and target.address
   teardown()
 
@@ -248,19 +248,19 @@ local function start(mode, delta)
     return
   end
 
-  hop.windows = windows
-  hop.shown = group(windows)
-  hop.mode = mode
-  hop.filter = ""
-  hop.active = true
-  hop.alt_down = true -- the bind that got us here needs Alt held
-  hop.started = os.time()
+  jumpy.windows = windows
+  jumpy.shown = group(windows)
+  jumpy.mode = mode
+  jumpy.filter = ""
+  jumpy.active = true
+  jumpy.alt_down = true -- the bind that got us here needs Alt held
+  jumpy.started = os.time()
 
   -- Entry 1 is where you are, so one tap lands on entry 2 and one back-tap
   -- wraps to the oldest.
   -- The list is grouped by app, but the cursor still starts on the window you
   -- used last (or, backwards, the oldest), wherever grouping put it.
-  hop.index = position(hop.shown, windows[delta % #windows + 1])
+  jumpy.index = position(jumpy.shown, windows[delta % #windows + 1])
 
   hl.dispatch(hl.dsp.submap(SUBMAP))
   if poll then poll:set_enabled(true) end
@@ -268,63 +268,63 @@ local function start(mode, delta)
 end
 
 local function step(delta, mode)
-  if not hop.active then
+  if not jumpy.active then
     start(mode or "all", delta)
     return
   end
-  if #hop.shown == 0 then return end
-  hop.index = (hop.index - 1 + delta) % #hop.shown + 1
+  if #jumpy.shown == 0 then return end
+  jumpy.index = (jumpy.index - 1 + delta) % #jumpy.shown + 1
   redraw()
 end
 
 local function set_filter(text)
-  hop.filter = text
+  jumpy.filter = text
   refilter()
   if text == "" then
     -- Back to the full list: the cursor returns to the window used last.
-    hop.index = position(hop.shown, hop.windows[2] or hop.windows[1])
+    jumpy.index = position(jumpy.shown, jumpy.windows[2] or jumpy.windows[1])
   else
     -- The best match, unless that is the window you are already on.
-    hop.index = (#hop.shown > 1 and hop.shown[1].current) and 2 or 1
+    jumpy.index = (#jumpy.shown > 1 and jumpy.shown[1].current) and 2 or 1
   end
   redraw()
 end
 
 local function type_char(char)
-  if hop.active then set_filter(hop.filter .. char) end
+  if jumpy.active then set_filter(jumpy.filter .. char) end
 end
 
 local function backspace()
-  if not hop.active or hop.filter == "" then return end
-  set_filter(hop.filter:sub(1, -2))
+  if not jumpy.active or jumpy.filter == "" then return end
+  set_filter(jumpy.filter:sub(1, -2))
 end
 
 local function clear_filter()
-  if hop.active and hop.filter ~= "" then set_filter("") end
+  if jumpy.active and jumpy.filter ~= "" then set_filter("") end
 end
 
 local function close_selected()
-  if not hop.active then return end
-  local target = hop.shown[hop.index]
+  if not jumpy.active then return end
+  local target = jumpy.shown[jumpy.index]
   if not target then return end
 
   local close = string.format('hl.dsp.window.close({ window = "address:%s" })', target.address)
   hl.exec_cmd("hyprctl dispatch " .. shell_quote(close))
 
-  for i, w in ipairs(hop.windows) do
-    if w.address == target.address then table.remove(hop.windows, i) break end
+  for i, w in ipairs(jumpy.windows) do
+    if w.address == target.address then table.remove(jumpy.windows, i) break end
   end
   refilter()
-  if #hop.shown == 0 and hop.filter == "" then
+  if #jumpy.shown == 0 and jumpy.filter == "" then
     teardown()
     return
   end
-  if hop.index > #hop.shown then hop.index = math.max(1, #hop.shown) end
+  if jumpy.index > #jumpy.shown then jumpy.index = math.max(1, #jumpy.shown) end
   redraw()
 end
 
 -- The panel's own watchdog calls this if it ever outlives a switch.
-_G.__hop_cancel = teardown
+_G.__jumpy_cancel = teardown
 
 -- Keys -----------------------------------------------------------------------
 
@@ -332,9 +332,9 @@ hl.unbind("ALT + TAB")
 hl.unbind("ALT + SHIFT + TAB")
 hl.unbind("ALT + ESCAPE")
 hl.unbind("ALT + grave")
-hl.bind("ALT + TAB", function() step(1) end, { description = "Hop: switch window" })
-hl.bind("ALT + SHIFT + TAB", function() step(-1) end, { description = "Hop: switch window (reverse)" })
-hl.bind("ALT + grave", function() step(1, "app") end, { description = "Hop: switch window of this app" })
+hl.bind("ALT + TAB", function() step(1) end, { description = "Jumpy: switch window" })
+hl.bind("ALT + SHIFT + TAB", function() step(-1) end, { description = "Jumpy: switch window (reverse)" })
+hl.bind("ALT + grave", function() step(1, "app") end, { description = "Jumpy: switch window of this app" })
 
 hl.define_submap(SUBMAP, function()
   hl.bind("ALT + TAB", function() step(1) end)
@@ -370,17 +370,17 @@ end)
 -- every key on the system: two compares unless a switch is up.
 hl.on("input.keyboard.key", function(keycode, _, state)
   if not ALT_KEYCODES[keycode] then return end
-  hop.alt_down = state ~= 0
-  if state == 0 and hop.active then commit() end
+  jumpy.alt_down = state ~= 0
+  if state == 0 and jumpy.active then commit() end
 end)
 
 -- Belt and braces: if the release event is ever missed, or the list has been
 -- up far too long, end the switch rather than hold the keyboard in the submap.
 poll = hl.timer(function()
-  if not hop.active then return end
-  if not hop.alt_down then
+  if not jumpy.active then return end
+  if not jumpy.alt_down then
     commit()
-  elseif (os.time() - hop.started) * 1000 > TIMEOUT_MS then
+  elseif (os.time() - jumpy.started) * 1000 > TIMEOUT_MS then
     teardown()
   end
 end, { timeout = 250, type = "repeat" })
