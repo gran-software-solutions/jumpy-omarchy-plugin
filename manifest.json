@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "Gran Software Solutions",
   "license": "MIT",
-  "description": "Alt+Tab that flips instantly, groups windows by app, shows each workspace, and fuzzy-filters as you type with Alt held",
+  "description": "Alt+Tab that flips instantly, lists windows most recent first with their workspace, and fuzzy-filters as you type with Alt held",
   "kinds": ["panel"],
   "keepLoaded": true,
   "entryPoints": {

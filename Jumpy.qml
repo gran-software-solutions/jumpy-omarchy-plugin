@@ -6,10 +6,8 @@
 //   omarchy-shell jumpy show '{"windows":[...],"index":1,"filter":"",...}'
 //   omarchy-shell jumpy hide
 //
-// The list arrives grouped by app. Each window says whether it opens its app's
-// block ("first") and how many windows the block has ("count"); the app's
-// icon, name and count, "Brave (2)", are drawn once, on the first row, and a hairline
-// separates one app from the next.
+// The list arrives most recent first, one row per window: the app's icon and
+// name on the left, the title, and the workspace number on the right.
 //
 // The panel never takes keyboard focus: while a switch is up, Hyprland's "jumpy"
 // submap swallows stray keys, so a grab here would only add a way to get stuck.
@@ -69,8 +67,7 @@ Item {
 
   // ---- measure ----
   readonly property int rowHeight: Style.space(32)
-  readonly property int groupGap: Style.space(3)
-  readonly property int appColumn: Style.space(170)
+  readonly property int appColumn: Style.space(150)
   readonly property int wsColumn: Style.space(28)
   readonly property int rowPadding: Style.space(10)
   readonly property int iconSize: Style.space(20)
@@ -78,13 +75,7 @@ Item {
   readonly property int cardRadius: Style.space(12)
   readonly property int cardWidth: Math.min(Style.space(720), panel.width - Style.gapsOut * 2)
 
-  // Rows plus the gap each app block after the first adds above itself.
-  readonly property int listHeight: {
-    let h = 0
-    const n = Math.min(root.windows.length, root.maxRows)
-    for (let i = 0; i < n; i++) h += root.rowHeight + (root.startsBlock(i) ? root.groupGap * 2 + 1 : 0)
-    return Math.max(root.rowHeight, h)
-  }
+  readonly property int listHeight: Math.max(1, Math.min(root.windows.length, root.maxRows)) * root.rowHeight
 
   // ---- pointer ----
   // The pointer may already rest over the list when it opens, so hovering only
@@ -108,22 +99,6 @@ Item {
 
   function pickAt(index) {
     Quickshell.execDetached(["hyprctl", "eval", "__jumpy_pick(" + index + ")"])
-  }
-
-  // Index of the row that opens the app block `index` belongs to.
-  function blockStart(index) {
-    let i = index
-    while (i > 0 && root.windows[i] && !root.windows[i].first) i--
-    return i
-  }
-
-  function lastInBlock(index) {
-    const next = root.windows[index + 1]
-    return !next || next.first
-  }
-
-  function startsBlock(index) {
-    return index > 0 && !!root.windows[index] && root.windows[index].first
   }
 
   function friendlyAppName(appClass) {
@@ -413,30 +388,9 @@ Item {
               required property int index
               required property var modelData
               readonly property bool selected: index === root.selectedIndex
-              readonly property bool block: root.startsBlock(index)
-              readonly property bool grouped: (modelData.count || 1) > 1
-              readonly property bool last: root.lastInBlock(index)
-              // The group the cursor is in draws its thread in the accent.
-              readonly property bool hot: root.blockStart(index) === root.blockStart(root.selectedIndex)
-              readonly property color threadColor: hot ? Util.alpha(root.accent, 0.55)
-                                                       : Util.alpha(root.foreground, 0.16)
-              readonly property real threadX: root.rowPadding + root.iconSize / 2 - 0.75
-              readonly property real rowMid: height - root.rowHeight / 2
 
               width: list.width
-              height: root.rowHeight + (block ? root.groupGap * 2 + 1 : 0)
-
-              // Hairline that closes the app above.
-              Rectangle {
-                visible: row.block
-                y: root.groupGap
-                // Starts at the title column, so the app column reads as one
-                // clean strip of icons and names.
-                x: root.rowPadding + root.appColumn + Style.space(10)
-                width: parent.width - x - root.rowPadding
-                height: 1
-                color: root.hairline
-              }
+              height: root.rowHeight
 
               RectangularShadow {
                 visible: row.selected
@@ -449,10 +403,7 @@ Item {
 
               Rectangle {
                 id: pill
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: root.rowHeight
+                anchors.fill: parent
                 radius: Style.space(8)
                 color: row.selected ? root.cursorFill : "transparent"
                 border.width: row.selected ? 1 : 0
@@ -464,49 +415,33 @@ Item {
                   anchors.rightMargin: root.rowPadding
                   spacing: Style.space(10)
 
-                  // App column: icon, name and window count, first row only.
+                  // App column: icon and name, on every row.
                   RowLayout {
                     Layout.preferredWidth: root.appColumn
                     Layout.minimumWidth: root.appColumn
                     Layout.maximumWidth: root.appColumn
                     Layout.fillHeight: true
                     spacing: Style.space(10)
-                    visible: row.modelData.first
 
                     Image {
                       Layout.preferredWidth: root.iconSize
                       Layout.preferredHeight: root.iconSize
+                      Layout.alignment: Qt.AlignVCenter
                       fillMode: Image.PreserveAspectFit
                       sourceSize.width: width * Screen.devicePixelRatio
                       sourceSize.height: height * Screen.devicePixelRatio
-                      source: row.modelData.first ? root.appIcon(row.modelData.appClass) : ""
+                      source: root.appIcon(row.modelData.appClass)
                       asynchronous: true
                       smooth: true
                       mipmap: true
                     }
 
-                    // "Brave (2)": the count follows the name, in a lighter tone.
                     RowText {
-                      Layout.maximumWidth: root.appColumn - root.iconSize - Style.space(40)
+                      Layout.fillWidth: true
                       text: root.friendlyAppName(row.modelData.appClass)
                       color: row.selected ? root.foreground : root.muted
                       font.weight: Font.Medium
                     }
-
-                    RowText {
-                      visible: (row.modelData.count || 1) > 1
-                      Layout.leftMargin: -Style.space(5)
-                      text: "(" + row.modelData.count + ")"
-                      color: root.faint
-                      elide: Text.ElideNone
-                    }
-
-                    Item { Layout.fillWidth: true }
-                  }
-                  Item {
-                    visible: !row.modelData.first
-                    Layout.preferredWidth: root.appColumn
-                    Layout.minimumWidth: root.appColumn
                   }
 
                   RowText {
@@ -536,46 +471,6 @@ Item {
                   if (root.pointerMoved(p.x, p.y)) root.pointAt(row.index)
                 }
                 onClicked: root.pickAt(row.index)
-              }
-
-              // ---- thread: ties an app's windows to its icon ----
-              // Down from under the icon on the app's first row...
-              Rectangle {
-                visible: row.grouped && row.modelData.first
-                x: row.threadX
-                y: row.rowMid + root.iconSize / 2 + Style.space(3)
-                width: 1.5
-                height: row.height - y
-                color: row.threadColor
-              }
-              // ...straight through the windows in between...
-              Rectangle {
-                visible: row.grouped && !row.modelData.first && !row.last
-                x: row.threadX
-                y: 0
-                width: 1.5
-                height: row.height
-                color: row.threadColor
-              }
-              // ...and bending toward the title on the app's last window.
-              Item {
-                visible: row.grouped && !row.modelData.first && row.last
-                x: row.threadX
-                y: 0
-                width: Style.space(9)
-                height: row.rowMid + 0.75
-                clip: true
-
-                Rectangle {
-                  x: 0
-                  y: -Style.space(12)
-                  width: Style.space(24)
-                  height: parent.height + Style.space(12)
-                  radius: Style.space(6)
-                  color: "transparent"
-                  border.width: 1.5
-                  border.color: row.threadColor
-                }
               }
             }
           }

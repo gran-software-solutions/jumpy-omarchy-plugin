@@ -7,7 +7,7 @@ Tap to flip back, hold to see every window, type to find one.
 
 `de.gransoftware.jumpy`&nbsp;&nbsp;·&nbsp;&nbsp;![version](https://img.shields.io/badge/version-1.0.0-2f6f4e?style=flat-square)&nbsp;![shell](https://img.shields.io/badge/Omarchy-shell%20plugin-3b4252?style=flat-square)&nbsp;![hyprland](https://img.shields.io/badge/Hyprland-0.56%2B%20Lua-005f87?style=flat-square)
 
-<img src="preview.png" alt="Jumpy's window list: windows grouped by app with the app icon, name and window count on the left, titles in the middle, and each window's workspace number on the right" width="100%">
+<img src="preview.png" alt="Jumpy's window list: one row per window, most recent first, with the app icon and name, the title, and the workspace number" width="100%">
 
 </div>
 
@@ -21,15 +21,13 @@ Most switchers make you look before you move. Jumpy does not:
   The list only appears if you hold Alt a moment longer.
 - **Type while holding Alt** to fuzzy-filter by app name or title. `br` finds Brave,
   `vsc` finds Visual Studio Code, the title works too.
-- **Grouped by app.** Each app's windows sit together, its icon, name and
-  window count shown once on the left, with a hairline between apps. Apps
-  come in the order you used them, and the cursor still starts on your last
-  window.
+- **Most recent first.** One line per window, top to bottom from the one you
+  used last to the oldest, each with its app icon and name.
 - **The workspace** of every window is a number in the right column.
 - **Alt+Delete closes** the selected window and keeps the list open, so you
   can tidy up several at once.
 - **Alt+`** shows only the windows of the app you are in.
-- **Every window, every workspace**, apps most recently used first. The list is
+- **Every window, every workspace**, most recently used first. The list is
   frozen while you switch, so rows never move under you.
 - **Nothing leaks.** While the list is up, keys Jumpy does not use are swallowed
   instead of landing in the window behind it.

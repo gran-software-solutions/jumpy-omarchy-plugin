@@ -101,44 +101,10 @@ local function score(window, query)
   return nil
 end
 
--- Pull each app's windows together. Apps keep the order in which they first
--- appear in `list` (recency, or match quality while filtering), and so do the
--- windows inside an app. Each window learns whether it opens its app's block
--- and how big that block is, which is all the panel needs to draw it.
-local function group(list)
-  local order, by_app = {}, {}
-  for _, window in ipairs(list) do
-    local key = window.class
-    if not by_app[key] then
-      by_app[key] = {}
-      order[#order + 1] = key
-    end
-    table.insert(by_app[key], window)
-  end
-
-  local grouped = {}
-  for _, key in ipairs(order) do
-    local block = by_app[key]
-    for i, window in ipairs(block) do
-      window.first = i == 1
-      window.count = #block
-      grouped[#grouped + 1] = window
-    end
-  end
-  return grouped
-end
-
-local function position(list, target)
-  for i, window in ipairs(list) do
-    if window == target then return i end
-  end
-  return 1
-end
-
 local function refilter()
   local query = jumpy.filter:lower()
   if query == "" then
-    jumpy.shown = group(jumpy.windows)
+    jumpy.shown = jumpy.windows
     return
   end
 
@@ -153,9 +119,14 @@ local function refilter()
     return a.order < b.order
   end)
 
-  local matches = {}
-  for _, entry in ipairs(scored) do matches[#matches + 1] = entry.window end
-  jumpy.shown = group(matches)
+  jumpy.shown = {}
+  for _, entry in ipairs(scored) do jumpy.shown[#jumpy.shown + 1] = entry.window end
+
+  -- You are already on the window you are leaving. Push it to the end, so a
+  -- query that matches it and something else lands on the something else.
+  if #jumpy.shown > 1 and jumpy.shown[1].current then
+    table.insert(jumpy.shown, table.remove(jumpy.shown, 1))
+  end
 end
 
 -- Snapshot -------------------------------------------------------------------
@@ -199,9 +170,9 @@ local function payload()
   local rows = {}
   for _, w in ipairs(jumpy.shown) do
     rows[#rows + 1] = string.format(
-      '{"title":%s,"appClass":%s,"workspace":%s,"current":%s,"first":%s,"count":%d}',
+      '{"title":%s,"appClass":%s,"workspace":%s,"current":%s}',
       json_string(w.title), json_string(w.class), json_string(w.workspace),
-      w.current and "true" or "false", w.first and "true" or "false", w.count or 1
+      w.current and "true" or "false"
     )
   end
   return string.format(
@@ -249,7 +220,7 @@ local function start(mode, delta)
   end
 
   jumpy.windows = windows
-  jumpy.shown = group(windows)
+  jumpy.shown = windows
   jumpy.mode = mode
   jumpy.filter = ""
   jumpy.active = true
@@ -258,9 +229,9 @@ local function start(mode, delta)
 
   -- Entry 1 is where you are, so one tap lands on entry 2 and one back-tap
   -- wraps to the oldest.
-  -- The list is grouped by app, but the cursor still starts on the window you
-  -- used last (or, backwards, the oldest), wherever grouping put it.
-  jumpy.index = position(jumpy.shown, windows[delta % #windows + 1])
+  -- Entry 1 is where you are, so one tap lands on entry 2 and one back-tap
+  -- wraps to the oldest.
+  jumpy.index = delta % #jumpy.shown + 1
 
   hl.dispatch(hl.dsp.submap(SUBMAP))
   if poll then poll:set_enabled(true) end
@@ -280,13 +251,9 @@ end
 local function set_filter(text)
   jumpy.filter = text
   refilter()
-  if text == "" then
-    -- Back to the full list: the cursor returns to the window used last.
-    jumpy.index = position(jumpy.shown, jumpy.windows[2] or jumpy.windows[1])
-  else
-    -- The best match, unless that is the window you are already on.
-    jumpy.index = (#jumpy.shown > 1 and jumpy.shown[1].current) and 2 or 1
-  end
+  -- With no filter the list is back in recency order, where row 1 is the
+  -- window you are on; the cursor goes to row 2, as it did at the start.
+  jumpy.index = (text == "" and #jumpy.shown > 1) and 2 or 1
   redraw()
 end
 
