@@ -47,6 +47,12 @@ local function send(method, argument)
   hl.exec_cmd(command)
 end
 
+-- Out of process on purpose: a dispatch from inside a key callback does not
+-- settle until the next input event, so a focus change would look dead.
+local function dispatch_later(expression)
+  hl.exec_cmd("hyprctl dispatch " .. shell_quote(expression))
+end
+
 local function json_string(value)
   local escaped = tostring(value or "")
     :gsub("\\", "\\\\")
@@ -205,19 +211,17 @@ local function commit()
   local address = target and target.address
   teardown()
 
-  -- Out of process on purpose: focusing from inside a key callback does not
-  -- settle until the next input event, so the switch would look dead.
   if address then
-    local focus = string.format('hl.dsp.focus({ window = "address:%s" })', address)
-    hl.exec_cmd("hyprctl dispatch " .. shell_quote(focus))
+    dispatch_later(string.format('hl.dsp.focus({ window = "address:%s" })', address))
   end
 end
 
 local function start(mode, delta)
   local windows = snapshot(mode)
-  if #windows < 2 and not (mode == "app" and #windows == 1 and not windows[1].current) then
-    return
-  end
+  -- Nothing to switch to. Alt+` still jumps to a lone window of this app when
+  -- another app has focus.
+  local lone_elsewhere = mode == "app" and #windows == 1 and not windows[1].current
+  if #windows < 2 and not lone_elsewhere then return end
 
   jumpy.windows = windows
   jumpy.shown = windows
@@ -227,8 +231,6 @@ local function start(mode, delta)
   jumpy.alt_down = true -- the bind that got us here needs Alt held
   jumpy.started = os.time()
 
-  -- Entry 1 is where you are, so one tap lands on entry 2 and one back-tap
-  -- wraps to the oldest.
   -- Entry 1 is where you are, so one tap lands on entry 2 and one back-tap
   -- wraps to the oldest.
   jumpy.index = delta % #jumpy.shown + 1
@@ -275,8 +277,7 @@ local function close_selected()
   local target = jumpy.shown[jumpy.index]
   if not target then return end
 
-  local close = string.format('hl.dsp.window.close({ window = "address:%s" })', target.address)
-  hl.exec_cmd("hyprctl dispatch " .. shell_quote(close))
+  dispatch_later(string.format('hl.dsp.window.close({ window = "address:%s" })', target.address))
 
   for i, w in ipairs(jumpy.windows) do
     if w.address == target.address then table.remove(jumpy.windows, i) break end
@@ -290,6 +291,10 @@ local function close_selected()
   redraw()
 end
 
+local function valid_row(row)
+  return jumpy.active and row >= 0 and row < #jumpy.shown
+end
+
 -- The panel's own watchdog calls this if it ever outlives a switch.
 _G.__jumpy_cancel = teardown
 
@@ -297,21 +302,20 @@ _G.__jumpy_cancel = teardown
 -- cursor (the panel has already drawn it, so there is nothing to send back);
 -- a click switches to that window.
 _G.__jumpy_point = function(row)
-  if jumpy.active and row >= 0 and row < #jumpy.shown then jumpy.index = row + 1 end
+  if valid_row(row) then jumpy.index = row + 1 end
 end
 
 _G.__jumpy_pick = function(row)
-  if not jumpy.active or row < 0 or row >= #jumpy.shown then return end
+  if not valid_row(row) then return end
   jumpy.index = row + 1
   commit()
 end
 
 -- Keys -----------------------------------------------------------------------
 
-hl.unbind("ALT + TAB")
-hl.unbind("ALT + SHIFT + TAB")
-hl.unbind("ALT + ESCAPE")
-hl.unbind("ALT + grave")
+for _, keys in ipairs({ "ALT + TAB", "ALT + SHIFT + TAB", "ALT + ESCAPE", "ALT + grave" }) do
+  hl.unbind(keys)
+end
 hl.bind("ALT + TAB", function() step(1) end, { description = "Jumpy: switch window" })
 hl.bind("ALT + SHIFT + TAB", function() step(-1) end, { description = "Jumpy: switch window (reverse)" })
 hl.bind("ALT + grave", function() step(1, "app") end, { description = "Jumpy: switch window of this app" })
@@ -338,9 +342,9 @@ hl.define_submap(SUBMAP, function()
     local char = string.char(code)
     hl.bind("ALT + " .. char, function() type_char(char) end)
   end
-  hl.bind("ALT + space", function() type_char(" ") end)
-  hl.bind("ALT + minus", function() type_char("-") end)
-  hl.bind("ALT + period", function() type_char(".") end)
+  for key, char in pairs({ space = " ", minus = "-", period = "." }) do
+    hl.bind("ALT + " .. key, function() type_char(char) end)
+  end
 
   -- Everything else is swallowed while the list is up.
   hl.bind("catchall", hl.dsp.no_op())

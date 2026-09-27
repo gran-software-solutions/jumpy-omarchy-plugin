@@ -58,9 +58,9 @@ Item {
   // The Omarchy system font, as set with `omarchy font set`, so Jumpy matches
   // the bar and the menus.
   readonly property string sans: Style.font.menuFamily
-  readonly property string label: Style.font.menuFamily
   readonly property int rowFont: Style.font.body                          // 12 at the default size
   readonly property int labelFont: Math.max(9, Math.round(Style.font.caption * 0.95))
+  readonly property int footFont: Math.max(9, Math.round(rowFont * 0.8))
 
   // ---- measure ----
   readonly property int rowHeight: Style.space(32)
@@ -87,15 +87,24 @@ Item {
     return root.pointerLive
   }
 
+  // Calls back into jumpy.lua, which lives inside Hyprland.
+  function callLua(expression) {
+    Quickshell.execDetached(["hyprctl", "eval", expression])
+  }
+
   function pointAt(index) {
     if (index === root.selectedIndex) return
     root.selectedIndex = index
     watchdog.restart()
-    Quickshell.execDetached(["hyprctl", "eval", "__jumpy_point(" + index + ")"])
+    root.callLua("__jumpy_point(" + index + ")")
   }
 
   function pickAt(index) {
-    Quickshell.execDetached(["hyprctl", "eval", "__jumpy_pick(" + index + ")"])
+    root.callLua("__jumpy_pick(" + index + ")")
+  }
+
+  function cancel() {
+    root.callLua("__jumpy_cancel()")
   }
 
   function friendlyAppName(appClass) {
@@ -165,7 +174,7 @@ Item {
     interval: 20000
     onTriggered: {
       root.hide()
-      Quickshell.execDetached(["hyprctl", "eval", "__jumpy_cancel()"])
+      root.cancel()
     }
   }
 
@@ -190,8 +199,6 @@ Item {
   // A small keycap: faint face, hairline edge and a slightly deeper bottom
   // edge, so it reads as a key. `glyph` draws a Nerd Font key icon instead of
   // text (the theme font carries them).
-  readonly property int footFont: Math.max(9, Math.round(rowFont * 0.8))
-
   component KeyCap: Item {
     id: cap
     property string label
@@ -239,7 +246,7 @@ Item {
         model: hint.keys
         delegate: KeyCap {
           required property var modelData
-          readonly property var icons: ({ "@tab": "\u{F0312}", "@ctrl": "\u{F0634}", "@alt": "\u{F0635}", "@esc": "\u{F12B7}" })
+          readonly property var icons: ({ "@tab": "\u{F0312}", "@ctrl": "\u{F0634}" })
           glyph: String(modelData).charAt(0) === "@"
           label: glyph ? icons[modelData] : modelData
         }
@@ -286,7 +293,7 @@ Item {
     // A click outside the card cancels the switch.
     MouseArea {
       anchors.fill: parent
-      onClicked: Quickshell.execDetached(["hyprctl", "eval", "__jumpy_cancel()"])
+      onClicked: root.cancel()
     }
 
     Item {
@@ -323,12 +330,12 @@ Item {
         anchors.fill: parent
         radius: root.cardRadius
         color: root.background
+        border.width: 1
+        border.color: root.frame
 
         // Clicks on the card itself (header, padding) must not reach the
         // cancel area behind it.
         MouseArea { anchors.fill: parent }
-        border.width: 1
-        border.color: root.frame
 
         // A one-pixel light edge along the top, like a lit bevel.
         Rectangle {
@@ -406,7 +413,7 @@ Item {
               textFormat: Text.PlainText
               text: "WORKSPACE"
               color: root.faint
-              font.family: root.label
+              font.family: root.sans
               font.weight: Font.DemiBold
               font.pixelSize: root.labelFont
               font.letterSpacing: 1.4
@@ -543,14 +550,13 @@ Item {
               color: root.hairline
             }
 
-            Row {
+            Hint {
               anchors.left: parent.left
               anchors.leftMargin: root.rowPadding
               anchors.verticalCenter: parent.verticalCenter
               anchors.verticalCenterOffset: Style.space(2)
-              spacing: Style.space(6)
-
-              Hint { keys: ["Alt"]; action: "hold, then" }
+              keys: ["Alt"]
+              action: "hold, then"
             }
 
             Row {
